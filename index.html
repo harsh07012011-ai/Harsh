@@ -1,0 +1,2326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="theme-color" content="#0b1d2e" />
+<meta name="description" content="Harsh's study tracker for the NCERT PCM Foundation Plan — timers, streaks, goals and progress." />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon-192.png" type="image/png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<title>Harsh's NCERT Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body, #root { margin: 0; padding: 0; min-height: 100%; }
+  body { background: #0b1d2e; font-family: 'Inter', -apple-system, sans-serif; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(52,211,153,0.6); }
+    70% { box-shadow: 0 0 0 8px rgba(52,211,153,0); }
+    100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); }
+  }
+  @keyframes confetti-fall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(340px) rotate(540deg); opacity: 0; }
+  }
+  @keyframes toast-in {
+    0% { transform: translate(-50%, -16px); opacity: 0; }
+    100% { transform: translate(-50%, 0); opacity: 1; }
+  }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+  button { font-family: inherit; }
+  input, textarea { font-family: inherit; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.25.6/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo } = React;
+
+/* ============================== DATA ============================== */
+
+const SUBJECT_META = {
+  Physics:   { color: "#60A5FA", icon: "⚡" },
+  Chemistry: { color: "#34D399", icon: "🧪" },
+  Math:      { color: "#FBBF24", icon: "∫" }
+};
+
+// 3-stage rotating PCM interleaved structure (Physics → Chemistry → Math), Biology fully removed.
+const PLAN = [
+  {
+    stage: 1, title: "🌱 Foundations Phase", subtitle: "Rotating Physics → Chemistry → Math interleave", months: "July – September",
+    color: "#34D399", glow: "#34D39933", days: 91, hours: 150,
+    topics: [
+      { id: "p1", num: "01", title: "Motion in a Straight Line", subject: "Physics", cls: "Class 11", days: 8, hours: 13, focus: "Mechanics math setup, graphing position/velocity/time, equations of motion.",
+        testUrl: "https://www.selfstudys.com/mcq/jee/physics/online-test/27-motion-in-a-straight-line" },
+      { id: "c1", num: "02", title: "Chemical Bonding and Molecular Structure", subject: "Chemistry", cls: "Class 11", days: 9, hours: 15, focus: "VSEPR theory, hybridization, Molecular Orbital Theory (MOT).",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "m1", num: "03", title: "Complex Numbers and Quadratic Equations", subject: "Math", cls: "Class 11", days: 11, hours: 18, focus: "Conjugate, modulus, argument, roots of unity, quadratic properties.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "p2", num: "04", title: "Motion in a Plane", subject: "Physics", cls: "Class 11", days: 11, hours: 18, focus: "Vector addition/resolution, projectile motion formulas, relative velocity.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "c2", num: "05", title: "Chemical Thermodynamics", subject: "Chemistry", cls: "Class 11", days: 9, hours: 15, focus: "Enthalpy, entropy, Gibbs free energy, spontaneous reactions laws.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "m2", num: "06", title: "Limits and Derivatives", subject: "Math", cls: "Class 11", days: 11, hours: 18, focus: "Evaluating indeterminate forms (0/0), first principle of derivatives.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "p3", num: "07", title: "Laws of Motion", subject: "Physics", cls: "Class 11", days: 11, hours: 18, focus: "Free Body Diagrams (FBD), friction mechanics, circular motion dynamics.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "c3", num: "08", title: "Equilibrium (Physical & Ionic)", subject: "Chemistry", cls: "Class 11", days: 9, hours: 15, focus: "Le Chatelier's principle, pH calculations, solubility product.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "m3", num: "09", title: "Continuity and Differentiability", subject: "Math", cls: "Class 12", days: 12, hours: 20, focus: "Continuity conditions, differentiability check, chain rule, implicit differentiation.",
+        testUrl: "https://jeemocktest.in/" }
+    ]
+  },
+  {
+    stage: 2, title: "🚀 Core Acceleration Phase", subtitle: "Rotating Physics → Chemistry → Math interleave", months: "October – December",
+    color: "#FB923C", glow: "#FB923C33", days: 87, hours: 143.5,
+    topics: [
+      { id: "p4", num: "01", title: "Work, Energy and Power", subject: "Physics", cls: "Class 11", days: 10, hours: 16.5, focus: "Work-energy theorem, conservative vs. non-conservative forces, collisions.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "c4", num: "02", title: "Organic Chemistry: Some Basic Principles (GOC)", subject: "Chemistry", cls: "Class 11", days: 12, hours: 20, focus: "IUPAC naming, inductive/resonance effects, carbocation stability, isomerism.", priority: true,
+        testUrl: "https://jeemocktest.in/" },
+      { id: "m4", num: "03", title: "Applications of Derivatives", subject: "Math", cls: "Class 12", days: 13, hours: 21.5, focus: "Tangents/normals, increasing/decreasing functions, Maxima and Minima word problems.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "p5", num: "04", title: "System of Particles & Rotational Motion", subject: "Physics", cls: "Class 11", days: 13, hours: 21.5, focus: "Center of mass, torque, moment of inertia, angular momentum conservation.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "c5", num: "05", title: "Hydrocarbons", subject: "Chemistry", cls: "Class 11", days: 9, hours: 15, focus: "Alkanes, alkenes, alkynes mechanisms (ozonolysis, electrophilic addition).",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "m5", num: "06", title: "Integrals", subject: "Math", cls: "Class 12", days: 14, hours: 23, focus: "Substitution method, integration by parts, partial fractions, definite integral properties.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "p6", num: "07", title: "Gravitation", subject: "Physics", cls: "Class 11", days: 8, hours: 13, focus: "Universal law, gravitational potential energy, satellite orbital velocity.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "c6", num: "08", title: "Haloalkanes and Haloarenes", subject: "Chemistry", cls: "Class 12", days: 8, hours: 13, focus: "SN1 and SN2 substitution mechanism rules, elimination reactions.",
+        testUrl: "https://jeemocktest.in/" }
+    ]
+  },
+  {
+    stage: 3, title: "🎯 Advanced Culmination Phase", subtitle: "Rotating Physics → Chemistry → Math interleave", months: "January – March",
+    color: "#F472B6", glow: "#F472B633", days: 65, hours: 107,
+    topics: [
+      { id: "m6", num: "01", title: "Applications of Integrals (Area Under Curve)", subject: "Math", cls: "Class 12", days: 10, hours: 16.5, focus: "Area under simple curves, area between two curves.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "p7", num: "02", title: "Electric Charges and Fields", subject: "Physics", cls: "Class 12", days: 6, hours: 10, focus: "Coulomb's law, electric field lines, Gauss's law applications.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "c7", num: "03", title: "Alcohols, Phenols and Ethers", subject: "Chemistry", cls: "Class 12", days: 8, hours: 13, focus: "Acidic nature of phenols, Grignard reagent reactions, name reactions.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "m7", num: "04", title: "Differential Equations", subject: "Math", cls: "Class 12", days: 10, hours: 16.5, focus: "Order and degree, variable separable method, linear differential equations.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "p8", num: "05", title: "Electrostatic Potential and Capacitance", subject: "Physics", cls: "Class 12", days: 6, hours: 10, focus: "Equipotential surfaces, dielectrics, capacitor energy storage.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "c8", num: "06", title: "Aldehydes, Ketones and Carboxylic Acids", subject: "Chemistry", cls: "Class 12", days: 9, hours: 15, focus: "Nucleophilic addition, Aldol condensation, Cannizzaro reaction.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "p9", num: "07", title: "Current Electricity", subject: "Physics", cls: "Class 12", days: 8, hours: 13, focus: "Ohm's law, drift velocity, Kirchhoff's laws, potentiometer circuits.",
+        testUrl: "https://jeemocktest.in/" },
+      { id: "c9", num: "08", title: "Amines", subject: "Chemistry", cls: "Class 12", days: 8, hours: 13, focus: "Basic strength order of amines, Diazonium salt conversions.",
+        testUrl: "https://jeemocktest.in/" }
+    ]
+  }
+];
+
+const SUBSTAGES = [
+  { key: "learn", label: "Learn", icon: "📘" },
+  { key: "revision", label: "Revision", icon: "🔁" },
+  { key: "test", label: "Test", icon: "✏️" }
+];
+
+const STORAGE_KEY = "ncert_progress_v2";
+const TIMER_KEY = "ncert_running_timer_v1";
+const SETTINGS_KEY = "ncert_settings_v1";
+const SESSIONS_KEY = "ncert_sessions_v1";
+const CUSTOM_KEY = "ncert_custom_topics_v1";
+const PLANNER_KEY = "ncert_planner_tasks_v1";
+const PLANNER_TIMER_KEY = "ncert_planner_timer_v1";
+const SEED_SECS = 4440;
+const SEED_DATE = "2026-06-30";
+const SEED_FLAG = "seeded_p1_learn_jun30";
+const GAP_DAYS = 20;
+const BACKUP_REMIND_DAYS = 14;
+
+const ALL_TOPICS = PLAN.flatMap((b) => b.topics.map((t) => ({ ...t, block: b, subjColor: SUBJECT_META[t.subject].color, subjIcon: SUBJECT_META[t.subject].icon })));
+const TOTAL_PLANNED_HOURS = ALL_TOPICS.reduce((s, t) => s + t.hours, 0);
+const TOTAL_PLAN_DAYS = PLAN.reduce((s, b) => s + b.days, 0);
+
+/* ============================== PERSISTENCE ============================== */
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const state = raw ? JSON.parse(raw) : {};
+    if (!state[SEED_FLAG]) {
+      const cur = state["p1"] ?? {};
+      const stages = { learn: 0, revision: 0, test: 0, ...(cur.stages ?? {}) };
+      stages.learn += SEED_SECS;
+      const days = { ...(cur.days ?? {}) };
+      days[SEED_DATE] = (days[SEED_DATE] || 0) + SEED_SECS;
+      state["p1"] = { ...cur, stages, days };
+      state[SEED_FLAG] = true;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+    }
+    return state;
+  } catch { return {}; }
+}
+function saveState(s) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {} }
+function loadCustomData() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_KEY);
+    return raw ? JSON.parse(raw) : { overrides: {}, custom: [] };
+  } catch { return { overrides: {}, custom: [] }; }
+}
+function saveCustomData(d) {
+  try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(d)); } catch {}
+}
+function loadRunningTimer() {
+  try { const raw = localStorage.getItem(TIMER_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
+}
+function saveRunningTimer(t) {
+  try { if (t) localStorage.setItem(TIMER_KEY, JSON.stringify(t)); else localStorage.removeItem(TIMER_KEY); } catch {}
+}
+const DEFAULT_SETTINGS = {
+  dailyGoalHours: 4, planStartDate: SEED_DATE, milestonesSeen: [], goalCelebratedDate: null,
+  soundEnabled: true, vibrationEnabled: true,
+  lastBackupAt: null, backupDismissedAt: null,
+  lastGapNotifyWeekend: null
+};
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : { ...DEFAULT_SETTINGS };
+  } catch { return { ...DEFAULT_SETTINGS }; }
+}
+function saveSettings(s) { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch {} }
+function loadSessions() {
+  try { const raw = localStorage.getItem(SESSIONS_KEY); return raw ? JSON.parse(raw) : []; } catch { return []; }
+}
+function saveSessions(s) { try { localStorage.setItem(SESSIONS_KEY, JSON.stringify(s)); } catch {} }
+function loadPlannerTasks() {
+  try { const raw = localStorage.getItem(PLANNER_KEY); return raw ? JSON.parse(raw) : []; } catch { return []; }
+}
+function savePlannerTasks(t) { try { localStorage.setItem(PLANNER_KEY, JSON.stringify(t)); } catch {} }
+function loadPlannerTimer() {
+  try { const raw = localStorage.getItem(PLANNER_TIMER_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
+}
+function savePlannerTimer(t) {
+  try { if (t) localStorage.setItem(PLANNER_TIMER_KEY, JSON.stringify(t)); else localStorage.removeItem(PLANNER_TIMER_KEY); } catch {}
+}
+
+/* ============================== HELPERS ============================== */
+
+function todayKey() { return new Date().toISOString().slice(0, 10); }
+function tomorrowKey() { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); }
+function dateKeyFor(d) { return d.toISOString().slice(0, 10); }
+function fmtHM(totalSeconds) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  if (h === 0) return `${m}m`;
+  return `${h}h ${m}m`;
+}
+function fmtClock(totalSeconds) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = Math.floor(totalSeconds % 60);
+  return [h, m, s].map((v) => String(v).padStart(2, "0")).join(":");
+}
+function fmtDate(d) {
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+function aggregateDayTotals(progress) {
+  const totals = {};
+  for (const topic of ALL_TOPICS) {
+    const td = progress[topic.id];
+    if (!td || !td.days) continue;
+    for (const [date, secs] of Object.entries(td.days)) totals[date] = (totals[date] || 0) + secs;
+  }
+  return totals;
+}
+function computeStreak(dayTotals) {
+  let cursor = new Date();
+  if (!(dayTotals[dateKeyFor(cursor)] > 0)) cursor.setDate(cursor.getDate() - 1);
+  let streak = 0;
+  while (dayTotals[dateKeyFor(cursor)] > 0) { streak++; cursor.setDate(cursor.getDate() - 1); }
+  return streak;
+}
+function computeBestStreak(dayTotals) {
+  const dates = Object.keys(dayTotals).filter((d) => dayTotals[d] > 0).sort();
+  let best = 0, cur = 0, prev = null;
+  for (const d of dates) {
+    if (prev) {
+      const diff = (new Date(d + "T00:00:00") - new Date(prev + "T00:00:00")) / 86400000;
+      cur = diff === 1 ? cur + 1 : 1;
+    } else cur = 1;
+    best = Math.max(best, cur);
+    prev = d;
+  }
+  return best;
+}
+function last7Dates() {
+  const out = [];
+  for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); out.push(dateKeyFor(d)); }
+  return out;
+}
+const GOAL_TIER_COLORS = ["#34D399", "#22D3EE", "#3B82F6", "#8B5CF6", "#F59E0B"];
+function barColorForDay(secs, goalSecs) {
+  if (secs <= 0) return "rgba(148,163,184,0.18)";
+  if (goalSecs <= 0 || secs < goalSecs) return "rgba(148,163,184,0.35)";
+  const overMinutes = (secs - goalSecs) / 60;
+  const tier = Math.min(4, Math.floor(overMinutes / 15));
+  return GOAL_TIER_COLORS[tier];
+}
+function avgPaceLastNDays(dayTotals, n) {
+  let sum = 0;
+  for (let i = 0; i < n; i++) { const d = new Date(); d.setDate(d.getDate() - i); sum += (dayTotals[dateKeyFor(d)] || 0); }
+  return sum / n / 3600;
+}
+function estimateFinishDate(remainingHours, paceHrsPerDay) {
+  if (paceHrsPerDay <= 0.01) return null;
+  const daysNeeded = Math.ceil(remainingHours / paceHrsPerDay);
+  const d = new Date();
+  d.setDate(d.getDate() + daysNeeded);
+  return d;
+}
+function lastStudiedDate(days) {
+  const keys = Object.keys(days || {});
+  if (keys.length === 0) return null;
+  return keys.sort().at(-1);
+}
+function daysBetween(dateStr, refDate) {
+  const d = new Date(dateStr + "T00:00:00");
+  return Math.floor((refDate - d) / 86400000);
+}
+// A stable key identifying "this weekend" (the Saturday of the current week),
+// so a gap notification only fires once per weekend even if checked multiple times.
+function currentWeekendKey() {
+  const now = new Date();
+  const day = now.getDay(); // 0 Sun .. 6 Sat
+  if (day !== 0 && day !== 6) return null;
+  const sat = new Date(now);
+  sat.setDate(now.getDate() - (day === 0 ? 1 : 0));
+  return dateKeyFor(sat);
+}
+function expectedHoursByToday(planStartDate) {
+  const start = new Date(planStartDate + "T00:00:00");
+  const now = new Date();
+  const daysElapsed = Math.max(0, Math.floor((now - start) / 86400000) + 1);
+  const frac = Math.min(1, Math.max(0, daysElapsed / TOTAL_PLAN_DAYS));
+  return TOTAL_PLANNED_HOURS * frac;
+}
+
+function buildMilestones(totalSpentSecs, dayTotals, progress) {
+  const pctDone = Math.round((totalSpentSecs / 3600) / TOTAL_PLANNED_HOURS * 100);
+  const streak = computeStreak(dayTotals);
+  const totalHrs = totalSpentSecs / 3600;
+  const list = [];
+  [10, 25, 50, 75, 90, 100].forEach((p) =>
+    list.push({ id: `pct-${p}`, label: `${p}% syllabus complete`, icon: "📈", done: pctDone >= p }));
+  PLAN.forEach((b) => {
+    const stageDone = b.topics.every((t) => progress[t.id]?.done);
+    list.push({ id: `stage-${b.stage}`, label: `${b.title.replace(/^\S+\s/, "")} complete`, icon: "🏆", done: stageDone });
+  });
+  Object.keys(SUBJECT_META).forEach((subj) => {
+    const subjTopics = ALL_TOPICS.filter((t) => t.subject === subj);
+    const subjDone = subjTopics.length > 0 && subjTopics.every((t) => progress[t.id]?.done);
+    list.push({ id: `subject-${subj}`, label: `${subj} lane complete`, icon: SUBJECT_META[subj].icon, done: subjDone });
+  });
+  [3, 7, 14, 30, 60, 100].forEach((s) =>
+    list.push({ id: `streak-${s}`, label: `${s}-day streak`, icon: "🔥", done: streak >= s }));
+  [25, 50, 100, 200, 400].forEach((h) =>
+    list.push({ id: `hours-${h}`, label: `${h} hours studied`, icon: "⏱️", done: totalHrs >= h }));
+  return list;
+}
+
+/* ============================== THEME ============================== */
+
+const THEMES = {
+  dark: {
+    pageBg: "#0b1d2e",
+    bgGradient: "linear-gradient(180deg, #0b1d2e 0%, #0e2a3d 28%, #143a40 55%, #1a4a3a 78%, #16331f 100%)",
+    veil: "linear-gradient(180deg, rgba(2,8,14,0.55) 0%, rgba(2,8,14,0.25) 20%, rgba(2,8,14,0.55) 70%, rgba(2,8,14,0.85) 100%)",
+    cardBg: "rgba(12,28,22,0.55)", cardBorder: "rgba(255,255,255,0.08)",
+    text: "#F1F5F9", textMuted: "#94a3b8", textDim: "#64748b",
+    heading: "#FFFFFF", headingShadow: "0 2px 12px rgba(0,0,0,0.5)",
+    navBg: "rgba(15,30,24,0.5)", navBorder: "rgba(255,255,255,0.08)",
+    stickyBg: "rgba(6,20,16,0.92)", inputBg: "rgba(255,255,255,0.06)", inputBorder: "rgba(255,255,255,0.15)"
+  }
+};
+
+/* ============================== SMALL UI PARTS ============================== */
+
+function RadialProgress({ pct, color, size = 52, stroke = 4 }) {
+  const r = (size - stroke * 2) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = circ * (Math.min(100, Math.max(0, pct)) / 100);
+  return (
+    <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" style={{ transition: "stroke-dasharray 0.5s ease" }} />
+    </svg>
+  );
+}
+
+function Card({ children, style, theme }) {
+  const th = theme || THEMES.dark;
+  return (
+    <div style={{
+      borderRadius: 16, background: th.cardBg, border: `1px solid ${th.cardBorder}`,
+      backdropFilter: "blur(6px)", padding: "16px 18px", ...style
+    }}>{children}</div>
+  );
+}
+function CardTitle({ icon, children, right, theme }) {
+  const th = theme || THEMES.dark;
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+      <p style={{ margin: 0, fontSize: 12, color: th.textMuted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
+        {icon} {children}
+      </p>
+      {right}
+    </div>
+  );
+}
+
+function Confetti({ active }) {
+  const pieces = useMemo(() => {
+    const colors = ["#60A5FA", "#34D399", "#FBBF24", "#F472B6", "#A78BFA"];
+    return Array.from({ length: 26 }, (_, i) => ({
+      id: i, left: Math.random() * 100, delay: Math.random() * 0.4,
+      color: colors[i % colors.length], size: 6 + Math.random() * 6
+    }));
+  }, [active]);
+  if (!active) return null;
+  return (
+    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 200, overflow: "hidden" }}>
+      {pieces.map((p) => (
+        <div key={p.id} style={{
+          position: "absolute", top: 0, left: `${p.left}%`, width: p.size, height: p.size * 1.6,
+          background: p.color, borderRadius: 2, animation: `confetti-fall 1.6s ease-in ${p.delay}s forwards`
+        }} />
+      ))}
+    </div>
+  );
+}
+
+function Toast({ message }) {
+  if (!message) return null;
+  return (
+    <div style={{
+      position: "fixed", top: 14, left: "50%", zIndex: 201, transform: "translateX(-50%)",
+      background: "rgba(15,36,28,0.95)", border: "1px solid rgba(167,139,250,0.4)", color: "#fff",
+      padding: "10px 18px", borderRadius: 12, fontSize: 13, fontWeight: 700, boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+      animation: "toast-in 0.3s ease", whiteSpace: "nowrap"
+    }}>{message}</div>
+  );
+}
+
+function ToggleRow({ label, checked, onChange }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0" }}>
+      <span style={{ fontSize: 12.5, color: "#E2E8F0" }}>{label}</span>
+      <button onClick={() => onChange(!checked)} style={{
+        width: 42, height: 24, borderRadius: 20, border: "none", cursor: "pointer", position: "relative",
+        background: checked ? "#34D399" : "rgba(255,255,255,0.15)", transition: "background 0.2s"
+      }}>
+        <span style={{
+          position: "absolute", top: 3, left: checked ? 21 : 3, width: 18, height: 18, borderRadius: "50%",
+          background: "#fff", transition: "left 0.2s"
+        }} />
+      </button>
+    </div>
+  );
+}
+
+function CalendarHeatmap({ planStartDate, dayTotals, goalSecs, tooltip, setTooltip, cellSize, theme }) {
+  const th = theme || THEMES.dark;
+  const cell = cellSize || 11;
+  const gap = Math.max(2, Math.round(cell * 0.18));
+  const stride = cell + gap;
+  const start = new Date(planStartDate + "T00:00:00");
+  const endStr = dateKeyFor(addDays(planStartDate, TOTAL_PLAN_DAYS - 1));
+  // Align to the Sunday on/before start so weeks are consistent columns
+  const gridStart = new Date(start);
+  gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+  const totalCells = TOTAL_PLAN_DAYS + start.getDay() + 6;
+  const weeks = Math.ceil(totalCells / 7);
+  const cells = [];
+  for (let i = 0; i < weeks * 7; i++) {
+    const d = new Date(gridStart);
+    d.setDate(d.getDate() + i);
+    cells.push(dateKeyFor(d));
+  }
+  const months = [];
+  let lastMonth = null;
+  for (let w = 0; w < weeks; w++) {
+    const d = new Date(gridStart);
+    d.setDate(d.getDate() + w * 7);
+    const label = d.toLocaleDateString("en-IN", { month: "short" });
+    if (label !== lastMonth) { months.push({ w, label }); lastMonth = label; }
+  }
+  return (
+    <div style={{ overflowX: "auto", paddingBottom: 6 }}>
+      <div style={{ position: "relative", width: weeks * stride, height: 12, marginBottom: 2 }}>
+        {months.map((m) => (
+          <span key={m.w} style={{ position: "absolute", left: m.w * stride, fontSize: 9, color: th.textDim }}>{m.label}</span>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateRows: `repeat(7, ${cell}px)`, gridAutoFlow: "column", gap, width: weeks * stride }}>
+        {cells.map((day) => {
+          const secs = dayTotals[day] || 0;
+          const inPlan = day >= planStartDate && day <= endStr;
+          const color = !inPlan ? "transparent" : barColorForDay(secs, goalSecs);
+          return (
+            <div key={day} onClick={() => inPlan && setTooltip(tooltip === day ? null : day)}
+              title={inPlan ? `${day}: ${fmtHM(secs)}` : ""}
+              style={{ width: cell, height: cell, borderRadius: 2, background: color, cursor: inPlan ? "pointer" : "default" }} />
+          );
+        })}
+      </div>
+      {tooltip && (
+        <p style={{ margin: "8px 0 0", fontSize: 11, color: th.text }}>
+          {new Date(tooltip + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}: <b>{fmtHM(dayTotals[tooltip] || 0)}</b>
+        </p>
+      )}
+    </div>
+  );
+}
+
+function NatureBackground({ theme }) {
+  const th = theme || THEMES.dark;
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 0, overflow: "hidden",
+      background: th.bgGradient
+    }}>
+      <div style={{
+        position: "absolute", top: "-8%", right: "8%", width: 260, height: 260, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(255,210,140,0.35) 0%, rgba(255,210,140,0.08) 45%, transparent 70%)",
+        filter: "blur(2px)"
+      }} />
+      <div style={{ position: "absolute", inset: 0, background: th.veil }} />
+    </div>
+  );
+}
+
+/* ============================== SOUND ============================== */
+
+let _audioCtx = null;
+function getAudioCtx() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  if (!_audioCtx) _audioCtx = new Ctx();
+  if (_audioCtx.state === "suspended") _audioCtx.resume().catch(() => {});
+  return _audioCtx;
+}
+function unlockAudioOnce() {
+  const ctx = getAudioCtx();
+  if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
+}
+function playTone(freq, startOffset, duration, ctx, gainPeak) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine";
+  osc.frequency.value = freq;
+  const t0 = ctx.currentTime + startOffset;
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(gainPeak, t0 + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + duration + 0.05);
+}
+function playChime(kind) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    if (kind === "milestone") {
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => playTone(f, i * 0.09, 0.5, ctx, 0.09));
+    } else if (kind === "goal") {
+      [659.25, 987.77].forEach((f, i) => playTone(f, i * 0.1, 0.4, ctx, 0.08));
+    } else {
+      [523.25, 659.25, 783.99].forEach((f, i) => playTone(f, i * 0.09, 0.45, ctx, 0.09));
+    }
+  } catch {}
+}
+
+function SessionRow({ s, isEditing, onEditStart, onEditCancel, onEditSave, onDelete, onNoteChange }) {
+  const [stage, setStage] = useState(s.stage);
+  const [date, setDate] = useState(s.date);
+  const [hours, setHours] = useState(String(Math.floor(s.durationSec / 3600)));
+  const [minutes, setMinutes] = useState(String(Math.floor((s.durationSec % 3600) / 60)));
+
+  useEffect(() => {
+    if (isEditing) {
+      setStage(s.stage); setDate(s.date);
+      setHours(String(Math.floor(s.durationSec / 3600)));
+      setMinutes(String(Math.floor((s.durationSec % 3600) / 60)));
+    }
+  }, [isEditing]);
+
+  const inputStyle = { padding: "6px 8px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 12 };
+
+  if (isEditing) {
+    return (
+      <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.3)" }}>
+        <p style={{ margin: "0 0 8px", fontSize: 12.5, fontWeight: 700, color: "#E2E8F0" }}>{s.topicTitle}</p>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+          <select value={stage} onChange={(e) => setStage(e.target.value)} style={inputStyle}>
+            {SUBSTAGES.map((x) => <option key={x.key} value={x.key}>{x.icon} {x.label}</option>)}
+          </select>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} />
+          <input type="number" min="0" value={hours} onChange={(e) => setHours(e.target.value)} placeholder="h" style={{ ...inputStyle, width: 52 }} />
+          <input type="number" min="0" max="59" value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="m" style={{ ...inputStyle, width: 52 }} />
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={() => {
+            const secs = (Math.max(0, parseInt(hours) || 0) * 3600) + (Math.max(0, Math.min(59, parseInt(minutes) || 0)) * 60);
+            onEditSave({ stage, date, durationSec: Math.max(60, secs) });
+          }} style={{ flex: 1, padding: "7px", borderRadius: 8, border: "none", background: "#34D399", color: "#0b1d2e", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Save</button>
+          <button onClick={onEditCancel} style={{ flex: 1, padding: "7px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "#94a3b8", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+        <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: "#E2E8F0" }}>{s.topicTitle}</p>
+        <span style={{ fontSize: 11, color: "#64748b", flexShrink: 0 }}>{fmtHM(s.durationSec)}</span>
+      </div>
+      <p style={{ margin: "2px 0 6px", fontSize: 10.5, color: "#64748b" }}>
+        {SUBSTAGES.find((x) => x.key === s.stage)?.icon} {SUBSTAGES.find((x) => x.key === s.stage)?.label} · {new Date(s.date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+        {s.manual && <span style={{ marginLeft: 6, fontSize: 9, color: "#A78BFA", fontWeight: 700 }}>MANUAL</span>}
+      </p>
+      <textarea placeholder="Add a note about this session…" value={s.note}
+        onChange={(e) => onNoteChange(e.target.value)}
+        rows={1} style={{
+          width: "100%", resize: "vertical", padding: "6px 8px", borderRadius: 8,
+          border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)",
+          color: "#E2E8F0", fontSize: 12, marginBottom: 6
+        }} />
+      <div style={{ display: "flex", gap: 6 }}>
+        <button onClick={onEditStart} style={{ padding: "5px 10px", borderRadius: 7, border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "#94a3b8", fontSize: 10.5, fontWeight: 700, cursor: "pointer" }}>✎ Edit</button>
+        <button onClick={onDelete} style={{ padding: "5px 10px", borderRadius: 7, border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#F87171", fontSize: 10.5, fontWeight: 700, cursor: "pointer" }}>🗑 Delete</button>
+      </div>
+    </div>
+  );
+}
+
+function ManualLogModal({ value, onChange, onSave, onClose, blocks }) {
+  const inputStyle = { padding: "9px 10px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 13, width: "100%" };
+  const labelStyle = { display: "block", margin: "0 0 4px", fontSize: 10.5, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 };
+  const canSave = value.topicId && ((parseInt(value.hours) || 0) > 0 || (parseInt(value.minutes) || 0) > 0);
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: "100%", maxWidth: 480, background: "#0f2118", borderRadius: "18px 18px 0 0",
+        padding: "20px 20px 26px", border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none"
+      }}>
+        <p style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 800, color: "#fff" }}>📥 Log a past session</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <label style={labelStyle}>Topic</label>
+            <select style={inputStyle} value={value.topicId} onChange={(e) => onChange({ ...value, topicId: e.target.value })}>
+              <option value="">Select a topic…</option>
+              {blocks.map((b) => (
+                <optgroup key={b.stage} label={b.title}>
+                  {b.topics.map((t) => <option key={t.id} value={t.id}>{SUBJECT_META[t.subject]?.icon || "＋"} {t.num}. {t.title}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Stage</label>
+              <select style={inputStyle} value={value.stage} onChange={(e) => onChange({ ...value, stage: e.target.value })}>
+                {SUBSTAGES.map((s) => <option key={s.key} value={s.key}>{s.icon} {s.label}</option>)}
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Date</label>
+              <input type="date" style={inputStyle} max={todayKey()} value={value.date} onChange={(e) => onChange({ ...value, date: e.target.value })} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Hours</label>
+              <input type="number" min="0" style={inputStyle} value={value.hours} onChange={(e) => onChange({ ...value, hours: e.target.value })} placeholder="0" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Minutes</label>
+              <input type="number" min="0" max="59" style={inputStyle} value={value.minutes} onChange={(e) => onChange({ ...value, minutes: e.target.value })} placeholder="0" />
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Note (optional)</label>
+            <textarea style={{ ...inputStyle, resize: "vertical" }} rows={2} value={value.note} onChange={(e) => onChange({ ...value, note: e.target.value })} placeholder="Studied on paper, on the bus…" />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <button disabled={!canSave} onClick={onSave} style={{
+            flex: 1, padding: "12px", borderRadius: 10, border: "none",
+            background: canSave ? "#34D399" : "rgba(255,255,255,0.08)", color: canSave ? "#0b1d2e" : "#64748b",
+            fontWeight: 800, fontSize: 13.5, cursor: canSave ? "pointer" : "not-allowed"
+          }}>Save session</button>
+          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "#94a3b8", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddTopicModal({ blockLabel, value, onChange, onSave, onClose }) {
+  const inputStyle = { padding: "9px 10px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 13, width: "100%" };
+  const labelStyle = { display: "block", margin: "0 0 4px", fontSize: 10.5, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 };
+  const canSave = value.title.trim() && (parseFloat(value.hours) || 0) > 0 && (parseFloat(value.days) || 0) > 0;
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: "100%", maxWidth: 480, background: "#0f2118", borderRadius: "18px 18px 0 0",
+        padding: "20px 20px 26px", border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none"
+      }}>
+        <p style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 800, color: "#fff" }}>➕ Add a topic</p>
+        <p style={{ margin: "0 0 14px", fontSize: 11.5, color: "#94a3b8" }}>Adding to {blockLabel}</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <label style={labelStyle}>Topic title</label>
+            <input style={inputStyle} value={value.title} onChange={(e) => onChange({ ...value, title: e.target.value })} placeholder="e.g. Extra practice: Thermodynamics" />
+          </div>
+          <div>
+            <label style={labelStyle}>Subject</label>
+            <select style={inputStyle} value={value.subject} onChange={(e) => onChange({ ...value, subject: e.target.value })}>
+              {Object.keys(SUBJECT_META).map((s) => <option key={s} value={s}>{SUBJECT_META[s].icon} {s}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Class / tag (optional)</label>
+            <input style={inputStyle} value={value.cls} onChange={(e) => onChange({ ...value, cls: e.target.value })} placeholder="e.g. Class 11, Revision, Extra" />
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Hours to allot</label>
+              <input type="number" min="0" step="0.5" style={inputStyle} value={value.hours} onChange={(e) => onChange({ ...value, hours: e.target.value })} placeholder="e.g. 6" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Days to allot</label>
+              <input type="number" min="0" style={inputStyle} value={value.days} onChange={(e) => onChange({ ...value, days: e.target.value })} placeholder="e.g. 3" />
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Focus notes (optional)</label>
+            <textarea style={{ ...inputStyle, resize: "vertical" }} rows={2} value={value.focus} onChange={(e) => onChange({ ...value, focus: e.target.value })} placeholder="What to focus on in this topic…" />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <button disabled={!canSave} onClick={onSave} style={{
+            flex: 1, padding: "12px", borderRadius: 10, border: "none",
+            background: canSave ? "#34D399" : "rgba(255,255,255,0.08)", color: canSave ? "#0b1d2e" : "#64748b",
+            fontWeight: 800, fontSize: 13.5, cursor: canSave ? "pointer" : "not-allowed"
+          }}>Add topic</button>
+          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "#94a3b8", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditTopicModal({ topic, value, onChange, onSave, onDelete, onClose }) {
+  const inputStyle = { padding: "9px 10px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 13, width: "100%" };
+  const labelStyle = { display: "block", margin: "0 0 4px", fontSize: 10.5, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 };
+  const canSave = (parseFloat(value.hours) || 0) > 0 && (parseFloat(value.days) || 0) > 0;
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: "100%", maxWidth: 480, background: "#0f2118", borderRadius: "18px 18px 0 0",
+        padding: "20px 20px 26px", border: "1px solid rgba(255,255,255,0.1)", borderBottom: "none"
+      }}>
+        <p style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 800, color: "#fff" }}>✎ Edit allotted time</p>
+        <p style={{ margin: "0 0 14px", fontSize: 11.5, color: "#94a3b8" }}>{topic.title}</p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Hours to allot</label>
+            <input type="number" min="0" step="0.5" style={inputStyle} value={value.hours} onChange={(e) => onChange({ ...value, hours: e.target.value })} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Days to allot</label>
+            <input type="number" min="0" style={inputStyle} value={value.days} onChange={(e) => onChange({ ...value, days: e.target.value })} />
+          </div>
+        </div>
+        <p style={{ margin: "10px 0 0", fontSize: 10, color: "#64748b" }}>Note: this only changes this topic's own targets (and its "days saved" calculation) — it doesn't shift the overall {TOTAL_PLAN_DAYS}-day plan's finish-date projection.</p>
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <button disabled={!canSave} onClick={onSave} style={{
+            flex: 1, padding: "12px", borderRadius: 10, border: "none",
+            background: canSave ? "#34D399" : "rgba(255,255,255,0.08)", color: canSave ? "#0b1d2e" : "#64748b",
+            fontWeight: 800, fontSize: 13.5, cursor: canSave ? "pointer" : "not-allowed"
+          }}>Save</button>
+          <button onClick={onClose} style={{ padding: "12px 18px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "#94a3b8", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>Cancel</button>
+        </div>
+        {topic.isCustom && (
+          <button onClick={onDelete} style={{ marginTop: 10, width: "100%", padding: "10px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.1)", color: "#F87171", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>🗑 Delete this topic</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================== APP ============================== */
+
+function App() {
+  const [progress, setProgress] = useState(loadState);
+  const [settings, setSettings] = useState(loadSettings);
+  const [sessions, setSessions] = useState(loadSessions);
+  const [tab, setTab] = useState("track");
+  const [activeBlock, setActiveBlock] = useState(0);
+  const [expandedTopic, setExpandedTopic] = useState(null);
+  const initialTimer = loadRunningTimer();
+  const [runningTopic, setRunningTopic] = useState(initialTimer ? initialTimer.topicId : null);
+  const [runningStage, setRunningStage] = useState(initialTimer ? initialTimer.stage : null);
+  const startTimestampRef = useRef(initialTimer ? initialTimer.startTimestamp : null);
+  const [elapsed, setElapsed] = useState(initialTimer ? Math.floor((Date.now() - initialTimer.startTimestamp) / 1000) : 0);
+  const [showStats, setShowStats] = useState(false);
+  const intervalRef = useRef(null);
+
+  const [plannerTasks, setPlannerTasks] = useState(loadPlannerTasks);
+  const initialPlannerTimer = loadPlannerTimer();
+  const [runningPlannerId, setRunningPlannerId] = useState(initialPlannerTimer ? initialPlannerTimer.taskId : null);
+  const plannerStartRef = useRef(initialPlannerTimer ? initialPlannerTimer.startTimestamp : null);
+  const [plannerElapsed, setPlannerElapsed] = useState(initialPlannerTimer ? Math.floor((Date.now() - initialPlannerTimer.startTimestamp) / 1000) : 0);
+  const plannerIntervalRef = useRef(null);
+  const [newPlannerTask, setNewPlannerTask] = useState({ title: "", date: tomorrowKey(), hours: "", minutes: "" });
+
+  const [celebration, setCelebration] = useState(null);
+  const [confettiOn, setConfettiOn] = useState(false);
+  const [reviewMonthOffset, setReviewMonthOffset] = useState(0);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [importMsg, setImportMsg] = useState("");
+  const [selectedDay, setSelectedDay] = useState(null);
+  const selectedDayTimeoutRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const [showAllSessions, setShowAllSessions] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState(null);
+  const [manualLogOpen, setManualLogOpen] = useState(false);
+  const [addTopicOpen, setAddTopicOpen] = useState(false);
+  const [newTopic, setNewTopic] = useState({ title: "", subject: "Physics", cls: "", hours: "", days: "", focus: "" });
+  const [editTopicId, setEditTopicId] = useState(null);
+  const [editTopicVals, setEditTopicVals] = useState({ hours: "", days: "" });
+  const [manualLog, setManualLog] = useState({ topicId: "", stage: "learn", date: todayKey(), hours: "", minutes: "", note: "" });
+  const [notifPermission, setNotifPermission] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
+  const [heatmapTooltip, setHeatmapTooltip] = useState(null);
+  const [heatmapZoom, setHeatmapZoom] = useState(11);
+
+  const celebrate = (msg, kind, opts) => {
+    const showConfetti = !opts || opts.confetti !== false;
+    setCelebration(msg);
+    if (showConfetti) {
+      setConfettiOn(true);
+      setTimeout(() => setConfettiOn(false), 1700);
+    }
+    if (settings.soundEnabled) playChime(kind || "default");
+    if (showConfetti && settings.vibrationEnabled && navigator.vibrate) { try { navigator.vibrate([40, 60, 40]); } catch {} }
+    setTimeout(() => setCelebration(null), 3000);
+  };
+
+  useEffect(() => {
+    const handler = () => unlockAudioOnce();
+    window.addEventListener("pointerdown", handler, { once: true });
+    return () => window.removeEventListener("pointerdown", handler);
+  }, []);
+
+  useEffect(() => () => clearTimeout(selectedDayTimeoutRef.current), []);
+
+  useEffect(() => {
+    document.body.style.background = th.pageBg;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", th.pageBg);
+  }, []);
+
+  useEffect(() => { saveState(progress); }, [progress]);
+  useEffect(() => { saveSettings(settings); }, [settings]);
+  useEffect(() => { saveSessions(sessions); }, [sessions]);
+  useEffect(() => { savePlannerTasks(plannerTasks); }, [plannerTasks]);
+
+  useEffect(() => {
+    if (runningPlannerId && plannerStartRef.current) {
+      setPlannerElapsed(Math.floor((Date.now() - plannerStartRef.current) / 1000));
+      plannerIntervalRef.current = setInterval(() => {
+        setPlannerElapsed(Math.floor((Date.now() - plannerStartRef.current) / 1000));
+      }, 1000);
+    } else {
+      clearInterval(plannerIntervalRef.current);
+      setPlannerElapsed(0);
+    }
+    return () => clearInterval(plannerIntervalRef.current);
+  }, [runningPlannerId]);
+
+  useEffect(() => {
+    if (runningTopic && startTimestampRef.current) {
+      setElapsed(Math.floor((Date.now() - startTimestampRef.current) / 1000));
+      intervalRef.current = setInterval(() => {
+        setElapsed(Math.floor((Date.now() - startTimestampRef.current) / 1000));
+      }, 1000);
+    } else {
+      clearInterval(intervalRef.current);
+      setElapsed(0);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [runningTopic]);
+
+  // Re-post the persistent timer notification if the app is reopened while a timer from
+  // a previous session is still running (e.g. app was closed and relaunched).
+  useEffect(() => {
+    if (!runningTopic || !startTimestampRef.current) return;
+    const topic = findTopicMeta(runningTopic);
+    const stageLabel = SUBSTAGES.find((s) => s.key === runningStage)?.label || runningStage;
+    showTimerNotification(topic ? topic.title : runningTopic, stageLabel, startTimestampRef.current);
+    // eslint-disable-next-line
+  }, []);
+
+  useEffect(() => {
+    const handler = (e) => { if (runningTopic || runningPlannerId) { e.preventDefault(); e.returnValue = ""; } };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [runningTopic, runningPlannerId]);
+
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
+  }, []);
+
+  const getTopicData = (id) => {
+    const d = progress[id] ?? {};
+    return {
+      stages: d.stages ?? { learn: 0, revision: 0, test: 0 },
+      days: d.days ?? {},
+      done: d.done ?? false,
+      activeStage: d.activeStage ?? "learn",
+      completedDate: d.completedDate ?? null
+    };
+  };
+  const totalSecondsForTopic = (id) => {
+    const t = getTopicData(id);
+    return t.stages.learn + t.stages.revision + t.stages.test;
+  };
+
+  const requestNotifPermission = async () => {
+    if (typeof Notification === "undefined") return "unsupported";
+    if (Notification.permission === "default") {
+      const res = await Notification.requestPermission();
+      setNotifPermission(res);
+      return res;
+    }
+    setNotifPermission(Notification.permission);
+    return Notification.permission;
+  };
+
+  const showTimerNotification = async (topicTitle, stageLabel, startTimestamp) => {
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    if (!("serviceWorker" in navigator)) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const startedLabel = new Date(startTimestamp).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+      reg.showNotification("⏱ " + stageLabel + " in progress", {
+        body: `${topicTitle} · started ${startedLabel}`,
+        tag: "active-timer",
+        renotify: false,
+        requireInteraction: true,
+        silent: true,
+        icon: "icon-192.png",
+        actions: [{ action: "stop", title: "■ Stop & save" }],
+        data: { type: "active-timer" }
+      });
+    } catch {}
+  };
+  const clearTimerNotification = async () => {
+    if (!("serviceWorker" in navigator)) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const notifs = await reg.getNotifications({ tag: "active-timer" });
+      notifs.forEach((n) => n.close());
+    } catch {}
+  };
+
+  // Listen for "stop" tapped from the notification (works while app is open/backgrounded)
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const handler = (event) => {
+      if (event.data && event.data.type === "STOP_TIMER") stopTimerRef.current && stopTimerRef.current();
+    };
+    navigator.serviceWorker.addEventListener("message", handler);
+    return () => navigator.serviceWorker.removeEventListener("message", handler);
+  }, []);
+  // If the app was reopened (from a fully-closed state) because "Stop" was tapped in
+  // the notification, the URL carries ?stopTimer=1 — catch that on load too.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("stopTimer") === "1") {
+      stopTimerRef.current && stopTimerRef.current();
+      params.delete("stopTimer");
+      const clean = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
+      window.history.replaceState({}, "", clean);
+    }
+  }, []);
+
+  const startTimer = (topicId, stage) => {
+    if (runningTopic) return;
+    const ts = Date.now();
+    startTimestampRef.current = ts;
+    saveRunningTimer({ topicId, stage, startTimestamp: ts });
+    setRunningTopic(topicId);
+    setRunningStage(stage);
+    setElapsed(0);
+    const topic = findTopicMeta(topicId);
+    const stageLabel = SUBSTAGES.find((s) => s.key === stage)?.label || stage;
+    requestNotifPermission().then((perm) => {
+      if (perm === "granted") showTimerNotification(topic ? topic.title : topicId, stageLabel, ts);
+    });
+  };
+
+  const stopTimer = () => {
+    if (!runningTopic) return;
+    const secs = Math.floor((Date.now() - startTimestampRef.current) / 1000);
+    const id = runningTopic;
+    const stage = runningStage;
+    const day = todayKey();
+    const startedAt = startTimestampRef.current;
+    setProgress((p) => {
+      const cur = p[id] ?? {};
+      const stages = { ...(cur.stages ?? { learn: 0, revision: 0, test: 0 }) };
+      stages[stage] = (stages[stage] || 0) + secs;
+      const days = { ...(cur.days ?? {}) };
+      days[day] = (days[day] || 0) + secs;
+      return { ...p, [id]: { ...cur, stages, days, activeStage: stage } };
+    });
+    if (secs >= 20) {
+      const topic = findTopicMeta(id);
+      setSessions((prev) => [
+        { sid: `${startedAt}`, topicId: id, topicTitle: topic ? topic.title : id, stage, date: day, durationSec: secs, note: "" },
+        ...prev
+      ].slice(0, 200));
+    }
+    saveRunningTimer(null);
+    startTimestampRef.current = null;
+    setRunningTopic(null);
+    setRunningStage(null);
+    clearTimerNotification();
+  };
+  const stopTimerRef = useRef(stopTimer);
+  useEffect(() => { stopTimerRef.current = stopTimer; });
+
+  const addPlannerTask = () => {
+    const title = newPlannerTask.title.trim();
+    if (!title) return;
+    const h = parseFloat(newPlannerTask.hours) || 0;
+    const m = parseFloat(newPlannerTask.minutes) || 0;
+    const allottedMin = Math.round(h * 60 + m);
+    if (allottedMin <= 0) return;
+    const task = { id: `task_${Date.now()}`, title, date: newPlannerTask.date || tomorrowKey(), allottedMin, createdAt: Date.now() };
+    setPlannerTasks((prev) => [...prev, task]);
+    setNewPlannerTask({ title: "", date: newPlannerTask.date || tomorrowKey(), hours: "", minutes: "" });
+  };
+
+  const deletePlannerTask = (id) => {
+    if (runningPlannerId === id) return;
+    setPlannerTasks((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const startPlannerTask = (id) => {
+    if (runningPlannerId) return;
+    const ts = Date.now();
+    plannerStartRef.current = ts;
+    savePlannerTimer({ taskId: id, startTimestamp: ts });
+    setRunningPlannerId(id);
+    setPlannerElapsed(0);
+  };
+
+  // Stopping a planner task means the work is finished — clear its data from the planner.
+  const stopPlannerTask = () => {
+    if (!runningPlannerId) return;
+    const id = runningPlannerId;
+    const task = plannerTasks.find((t) => t.id === id);
+    savePlannerTimer(null);
+    plannerStartRef.current = null;
+    setRunningPlannerId(null);
+    setPlannerElapsed(0);
+    setPlannerTasks((prev) => prev.filter((t) => t.id !== id));
+    if (task) celebrate(`✅ ${task.title} — done!`, "chapter", { confetti: false });
+  };
+  const stopPlannerTaskRef = useRef(stopPlannerTask);
+  useEffect(() => { stopPlannerTaskRef.current = stopPlannerTask; });
+
+  const toggleDone = (topicId) => {
+    setProgress((p) => {
+      const cur = p[topicId] ?? {};
+      const newDone = !cur.done;
+      if (newDone) {
+        const topic = findTopicMeta(topicId);
+        celebrate(`🎉 ${topic ? topic.title : "Chapter"} complete!`, "chapter");
+      }
+      return { ...p, [topicId]: { ...cur, done: newDone, completedDate: newDone ? todayKey() : cur.completedDate } };
+    });
+  };
+  const setActiveStage = (topicId, stage) => {
+    setProgress((p) => {
+      const cur = p[topicId] ?? {};
+      return { ...p, [topicId]: { ...cur, activeStage: stage } };
+    });
+  };
+  const updateSessionNote = (sid, note) => {
+    setSessions((prev) => prev.map((s) => (s.sid === sid ? { ...s, note } : s)));
+  };
+
+  // Remove a session's contribution from progress.stages / progress.days for its topic
+  const removeContribution = (p, topicId, stage, date, secs) => {
+    const cur = p[topicId] ?? {};
+    const stages = { ...(cur.stages ?? { learn: 0, revision: 0, test: 0 }) };
+    stages[stage] = Math.max(0, (stages[stage] || 0) - secs);
+    const days = { ...(cur.days ?? {}) };
+    days[date] = Math.max(0, (days[date] || 0) - secs);
+    if (days[date] === 0) delete days[date];
+    return { ...p, [topicId]: { ...cur, stages, days } };
+  };
+  const addContribution = (p, topicId, stage, date, secs) => {
+    const cur = p[topicId] ?? {};
+    const stages = { ...(cur.stages ?? { learn: 0, revision: 0, test: 0 }) };
+    stages[stage] = (stages[stage] || 0) + secs;
+    const days = { ...(cur.days ?? {}) };
+    days[date] = (days[date] || 0) + secs;
+    return { ...p, [topicId]: { ...cur, stages, days } };
+  };
+
+  const deleteSession = (sid) => {
+    const s = sessions.find((x) => x.sid === sid);
+    if (!s) return;
+    setProgress((p) => removeContribution(p, s.topicId, s.stage, s.date, s.durationSec));
+    setSessions((prev) => prev.filter((x) => x.sid !== sid));
+  };
+
+  const editSession = (sid, updates) => {
+    const s = sessions.find((x) => x.sid === sid);
+    if (!s) return;
+    const next = { ...s, ...updates };
+    setProgress((p) => {
+      let np = removeContribution(p, s.topicId, s.stage, s.date, s.durationSec);
+      np = addContribution(np, next.topicId, next.stage, next.date, next.durationSec);
+      return np;
+    });
+    setSessions((prev) => prev.map((x) => (x.sid === sid ? next : x)));
+  };
+
+  const addManualSession = ({ topicId, stage, date, durationSec, note }) => {
+    if (!topicId || !stage || !date || !durationSec || durationSec <= 0) return;
+    const topic = findTopicMeta(topicId);
+    setProgress((p) => addContribution(p, topicId, stage, date, durationSec));
+    setSessions((prev) => [
+      { sid: `manual-${Date.now()}`, topicId, topicTitle: topic ? topic.title : topicId, stage, date, durationSec, note: note || "", manual: true },
+      ...prev
+    ].slice(0, 200));
+  };
+
+  /* ---------- derived numbers ---------- */
+  const allTopics = ALL_TOPICS;
+  const totalTopics = allTopics.length;
+  const doneTopics = allTopics.filter((t) => getTopicData(t.id).done).length;
+  const totalSecondsSpent = allTopics.reduce((s, t) => s + totalSecondsForTopic(t.id) + (runningTopic === t.id ? elapsed : 0), 0);
+  const totalHoursSpent = totalSecondsSpent / 3600;
+  const remainingHoursTotal = Math.max(0, TOTAL_PLANNED_HOURS - totalHoursSpent);
+  const globalPct = Math.round((doneTopics / totalTopics) * 100);
+
+  const dayTotals = aggregateDayTotals(progress);
+  if (runningTopic && elapsed > 0) {
+    const today = todayKey();
+    dayTotals[today] = (dayTotals[today] || 0) + elapsed;
+  }
+  const daysStudied = Object.keys(dayTotals).filter((d) => dayTotals[d] > 0).length;
+  const todaySeconds = dayTotals[todayKey()] || 0;
+  const sortedDays = Object.entries(dayTotals).sort((a, b) => b[0].localeCompare(a[0]));
+
+  const currentStreak = computeStreak(dayTotals);
+  const bestStreak = computeBestStreak(dayTotals);
+
+  const goalSecs = settings.dailyGoalHours * 3600;
+  const goalPct = goalSecs > 0 ? Math.min(100, Math.round((todaySeconds / goalSecs) * 100)) : 0;
+
+  useEffect(() => {
+    if (goalSecs > 0 && todaySeconds >= goalSecs && settings.goalCelebratedDate !== todayKey()) {
+      celebrate("🎯 Daily goal reached!", "goal");
+      setSettings((s) => ({ ...s, goalCelebratedDate: todayKey() }));
+    }
+    // eslint-disable-next-line
+  }, [todaySeconds, goalSecs]);
+
+  const pace7 = avgPaceLastNDays(dayTotals, 7);
+  const pace14 = avgPaceLastNDays(dayTotals, 14);
+  const estFinish = estimateFinishDate(remainingHoursTotal, pace7);
+  const planEndDate = addDays(settings.planStartDate, TOTAL_PLAN_DAYS);
+  const expectedHrsToday = expectedHoursByToday(settings.planStartDate);
+  const paceDeltaHours = totalHoursSpent - expectedHrsToday;
+  const onTrack = paceDeltaHours >= 0;
+  const calendarDaysDelayed = onTrack ? 0 : Math.ceil(Math.abs(paceDeltaHours) / settings.dailyGoalHours);
+
+  useEffect(() => {
+    const wk = currentWeekendKey();
+    if (!wk || settings.lastGapNotifyWeekend === wk) return;
+    const now = new Date();
+    const stale = ALL_TOPICS.filter((t) => {
+      const td = getTopicData(t.id);
+      if (td.done) return false;
+      const last = lastStudiedDate(td.days);
+      if (!last) return false; // never started — not a "revisit" case
+      return daysBetween(last, now) >= GAP_DAYS;
+    });
+    if (stale.length === 0) { setSettings((s) => ({ ...s, lastGapNotifyWeekend: wk })); return; }
+    const title = stale.length === 1 ? "🔁 Time to revisit a topic" : `🔁 ${stale.length} topics need revisiting`;
+    const body = stale.slice(0, 4).map((t) => t.title).join(", ") + (stale.length > 4 ? "…" : "");
+    if (typeof Notification !== "undefined" && Notification.permission === "granted" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.showNotification(title, { body, icon: "icon-192.png", tag: "gap-reminder" });
+      }).catch(() => {});
+    }
+    celebrate(`${title} — it's been ${GAP_DAYS}+ days`, "default", { confetti: false });
+    setSettings((s) => ({ ...s, lastGapNotifyWeekend: wk }));
+    // eslint-disable-next-line
+  }, [settings.lastGapNotifyWeekend]);
+
+  const milestones = useMemo(() => buildMilestones(totalSecondsSpent, dayTotals, progress),
+    [totalSecondsSpent, JSON.stringify(dayTotals), progress]);
+  useEffect(() => {
+    const achievedIds = milestones.filter((m) => m.done).map((m) => m.id);
+    const newOnes = achievedIds.filter((id) => !settings.milestonesSeen.includes(id));
+    if (newOnes.length > 0) {
+      const first = milestones.find((m) => m.id === newOnes[0]);
+      celebrate(`🏆 Milestone: ${first.label}`, "milestone");
+      setSettings((s) => ({ ...s, milestonesSeen: [...new Set([...s.milestonesSeen, ...newOnes])] }));
+    }
+    // eslint-disable-next-line
+  }, [milestones]);
+
+  // monthly review
+  const reviewDate = new Date();
+  reviewDate.setMonth(reviewDate.getMonth() + reviewMonthOffset);
+  const reviewMonthLabel = reviewDate.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  const reviewMonthKey = `${reviewDate.getFullYear()}-${String(reviewDate.getMonth() + 1).padStart(2, "0")}`;
+  const prevReviewDate = new Date(reviewDate); prevReviewDate.setMonth(prevReviewDate.getMonth() - 1);
+  const prevMonthKey = `${prevReviewDate.getFullYear()}-${String(prevReviewDate.getMonth() + 1).padStart(2, "0")}`;
+  const hoursInMonth = (monthKey) =>
+    Object.entries(dayTotals).filter(([d]) => d.startsWith(monthKey)).reduce((s, [, v]) => s + v, 0) / 3600;
+  const daysStudiedInMonth = (monthKey) => Object.keys(dayTotals).filter((d) => d.startsWith(monthKey) && dayTotals[d] > 0).length;
+  const topicsCompletedInMonth = (monthKey) =>
+    allTopics.filter((t) => getTopicData(t.id).completedDate && getTopicData(t.id).completedDate.startsWith(monthKey)).length;
+  const thisMonthHours = hoursInMonth(reviewMonthKey);
+  const prevMonthHours = hoursInMonth(prevMonthKey);
+  const monthDeltaPct = prevMonthHours > 0 ? Math.round(((thisMonthHours - prevMonthHours) / prevMonthHours) * 100) : null;
+
+  // backup
+  const doExport = () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      progress: JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"),
+      settings, sessions
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `foundation-plan-backup-${todayKey()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setSettings((s) => ({ ...s, lastBackupAt: Date.now() }));
+  };
+  const doImport = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!data.progress) throw new Error("Missing progress data");
+        setProgress(data.progress);
+        setSettings({ ...DEFAULT_SETTINGS, ...(data.settings || {}) });
+        setSessions(data.sessions || []);
+        setImportMsg("Backup restored ✓");
+        setTimeout(() => setImportMsg(""), 3000);
+      } catch (err) {
+        setImportMsg("Couldn't read that file — is it a Foundation Plan backup?");
+        setTimeout(() => setImportMsg(""), 4000);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const generateShareImage = async () => {
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch {}
+    const W = 1080, H = 1400, M = 80;
+    const canvas = document.createElement("canvas");
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+    bgGrad.addColorStop(0, "#F8FAFC");
+    bgGrad.addColorStop(1, "#ECFDF5");
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+    ctx.textBaseline = "alphabetic";
+
+    ctx.fillStyle = "#64748B";
+    ctx.font = "700 26px Inter, sans-serif";
+    ctx.fillText("NCERT PCM · FOUNDATION PLAN", M, 100);
+
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "800 54px Inter, sans-serif";
+    ctx.fillText("Harsh's Study Progress", M, 165);
+
+    ctx.fillStyle = "#A78BFA";
+    ctx.font = "800 190px Inter, sans-serif";
+    ctx.fillText(`${globalPct}%`, M, 400);
+    ctx.fillStyle = "#64748B";
+    ctx.font = "500 30px Inter, sans-serif";
+    ctx.fillText("of syllabus complete", M, 445);
+
+    ctx.strokeStyle = "#E2E8F0";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(M, 500); ctx.lineTo(W - M, 500); ctx.stroke();
+
+    const stats = [
+      ["🔥", `${currentStreak}-day streak`, `personal best: ${bestStreak} days`],
+      ["⏱", fmtHM(totalSecondsSpent), "studied in total"],
+      ["🏁", estFinish ? fmtDate(estFinish) : "Need more data", "estimated finish date"],
+      ["📘", `${doneTopics} / ${totalTopics}`, "chapters completed"]
+    ];
+    let y = 590;
+    stats.forEach(([icon, big, small]) => {
+      ctx.font = "44px sans-serif";
+      ctx.fillStyle = "#0F172A";
+      ctx.fillText(icon, M, y);
+      ctx.font = "700 42px Inter, sans-serif";
+      ctx.fillText(big, M + 70, y);
+      ctx.font = "400 26px Inter, sans-serif";
+      ctx.fillStyle = "#64748B";
+      ctx.fillText(small, M + 70, y + 38);
+      y += 130;
+    });
+
+    const secsBySubject = { Physics: 0, Chemistry: 0, Math: 0 };
+    ALL_TOPICS.forEach((t) => { secsBySubject[t.subject] += totalSecondsForTopic(t.id); });
+    const totalSecsAll = Math.max(1, Object.values(secsBySubject).reduce((s, v) => s + v, 0));
+    const barY = H - 200, barW = W - M * 2, barH = 26;
+    let x = M;
+    Object.keys(SUBJECT_META).forEach((subj) => {
+      const secs = secsBySubject[subj];
+      const w = (secs / totalSecsAll) * barW;
+      ctx.fillStyle = SUBJECT_META[subj].color;
+      ctx.fillRect(x, barY, Math.max(0, w), barH);
+      x += w;
+    });
+    ctx.font = "500 24px Inter, sans-serif";
+    ctx.fillStyle = "#94A3B8";
+    ctx.fillText("⚡ Physics   🧪 Chemistry   ∫ Math", M, barY + 60);
+
+    ctx.font = "500 22px Inter, sans-serif";
+    ctx.fillStyle = "#CBD5E1";
+    ctx.fillText(new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }), M, H - 50);
+
+    return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), "image/png"));
+  };
+
+  const shareProgressImage = async () => {
+    const blob = await generateShareImage();
+    if (!blob) return;
+    const file = new File([blob], `foundation-plan-progress-${todayKey()}.png`, { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: "My Foundation Plan progress" }); return; } catch { return; }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = file.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    celebrate("Image downloaded ✓", "default");
+  };
+
+  const blockPct = (b) => {
+    const done = b.topics.filter((t) => getTopicData(t.id).done).length;
+    return Math.round((done / b.topics.length) * 100);
+  };
+
+  const [customData, setCustomData] = useState(loadCustomData());
+  useEffect(() => { saveCustomData(customData); }, [customData]);
+
+  // Merges a static plan topic with any saved hours/days override
+  const effTopic = (topic) => {
+    const ov = customData.overrides[topic.id];
+    if (!ov) return topic;
+    const hours = Number.isFinite(ov.hours) && ov.hours > 0 ? ov.hours : topic.hours;
+    const days = Number.isFinite(ov.days) && ov.days > 0 ? ov.days : topic.days;
+    return { ...topic, hours, days };
+  };
+  // Looks up a topic (built-in or custom) by id, with overrides applied
+  const findTopicMeta = (topicId) => {
+    const base = ALL_TOPICS.find((t) => t.id === topicId);
+    if (base) return effTopic(base);
+    return customData.custom.find((t) => t.id === topicId) || null;
+  };
+  const topicsForBlock = (blockIndex) => {
+    const built = PLAN[blockIndex].topics.map(effTopic);
+    const extra = customData.custom.filter((t) => t.blockIndex === blockIndex);
+    return [...built, ...extra];
+  };
+  const saveTopicOverride = (topicId, updates) => {
+    const isCustom = customData.custom.some((t) => t.id === topicId);
+    if (isCustom) {
+      setCustomData((d) => ({ ...d, custom: d.custom.map((t) => (t.id === topicId ? { ...t, ...updates } : t)) }));
+    } else {
+      setCustomData((d) => ({ ...d, overrides: { ...d.overrides, [topicId]: { ...d.overrides[topicId], ...updates } } }));
+    }
+  };
+  const addCustomTopic = ({ blockIndex, title, subject, cls, hours, days, focus }) => {
+    if (!title || !hours || !days) return;
+    const id = `custom-${Date.now()}`;
+    const subj = SUBJECT_META[subject] ? subject : "Physics";
+    setCustomData((d) => ({ ...d, custom: [...d.custom, { id, blockIndex, num: "＋", title, subject: subj, cls: cls || "Extra", hours: Number(hours), days: Number(days), focus: focus || "", isCustom: true }] }));
+    return id;
+  };
+  const deleteCustomTopic = (topicId) => {
+    setCustomData((d) => ({ ...d, custom: d.custom.filter((t) => t.id !== topicId) }));
+    setProgress((p) => { const np = { ...p }; delete np[topicId]; return np; });
+  };
+
+  const th = THEMES.dark;
+
+  const totalDaysSaved = useMemo(() => {
+    return ALL_TOPICS.reduce((sum, t) => {
+      const td = getTopicData(t.id);
+      if (!td.done) return sum;
+      const studiedDays = Object.keys(td.days || {}).length;
+      if (studiedDays === 0) return sum;
+      return sum + (t.days - studiedDays);
+    }, 0);
+    // eslint-disable-next-line
+  }, [progress]);
+
+  const staleTopicsPreview = useMemo(() => {
+    const now = new Date();
+    return ALL_TOPICS.filter((t) => {
+      const td = getTopicData(t.id);
+      if (td.done) return false;
+      const last = lastStudiedDate(td.days);
+      return last && daysBetween(last, now) >= GAP_DAYS;
+    }).map((t) => ({ id: t.id, title: t.title, gapDays: daysBetween(lastStudiedDate(getTopicData(t.id).days), now) }))
+      .sort((a, b) => b.gapDays - a.gapDays).slice(0, 8);
+    // eslint-disable-next-line
+  }, [progress]);
+
+  const daysSinceMs = (ts) => ts ? (Date.now() - ts) / 86400000 : Infinity;
+  const showBackupReminder = daysStudied > 0
+    && daysSinceMs(settings.lastBackupAt) >= BACKUP_REMIND_DAYS
+    && daysSinceMs(settings.backupDismissedAt) >= BACKUP_REMIND_DAYS;
+
+  const block = PLAN[activeBlock];
+  const runningTopicMeta = runningTopic ? allTopics.find((t) => t.id === runningTopic) : null;
+  const runningTopicTitle = runningTopicMeta ? runningTopicMeta.title : "";
+
+  const week = last7Dates();
+  const weekMax = Math.max(3600, ...week.map((d) => dayTotals[d] || 0));
+
+  const tabBtnStyle = (active) => ({
+    flex: 1, padding: "10px 0", borderRadius: 10, border: "none", cursor: "pointer",
+    background: active ? "rgba(167,139,250,0.22)" : "transparent",
+    color: active ? "#fff" : "#94a3b8", fontWeight: 700, fontSize: 13
+  });
+
+  return (
+    <div style={{ position: "relative", minHeight: "100vh", paddingBottom: 40 }}>
+      <NatureBackground theme={th} />
+      <Confetti active={confettiOn} />
+      <Toast message={celebration} />
+      {manualLogOpen && (
+        <ManualLogModal
+          value={manualLog}
+          onChange={setManualLog}
+          blocks={PLAN.map((b, i) => ({ ...b, topics: topicsForBlock(i) }))}
+          onClose={() => setManualLogOpen(false)}
+          onSave={() => {
+            const durationSec = (Math.max(0, parseInt(manualLog.hours) || 0) * 3600) + (Math.max(0, Math.min(59, parseInt(manualLog.minutes) || 0)) * 60);
+            addManualSession({ topicId: manualLog.topicId, stage: manualLog.stage, date: manualLog.date, durationSec, note: manualLog.note });
+            setManualLogOpen(false);
+            setManualLog({ topicId: "", stage: "learn", date: todayKey(), hours: "", minutes: "", note: "" });
+          }}
+        />
+      )}
+
+      {addTopicOpen && (
+        <AddTopicModal
+          blockLabel={PLAN[activeBlock].title}
+          value={newTopic}
+          onChange={setNewTopic}
+          onClose={() => setAddTopicOpen(false)}
+          onSave={() => {
+            addCustomTopic({ blockIndex: activeBlock, title: newTopic.title.trim(), subject: newTopic.subject, cls: newTopic.cls.trim(), hours: parseFloat(newTopic.hours), days: parseFloat(newTopic.days), focus: newTopic.focus.trim() });
+            setAddTopicOpen(false);
+            setNewTopic({ title: "", subject: "Physics", cls: "", hours: "", days: "", focus: "" });
+          }}
+        />
+      )}
+
+      {editTopicId && (() => {
+        const t = findTopicMeta(editTopicId);
+        if (!t) return null;
+        return (
+          <EditTopicModal
+            topic={t}
+            value={editTopicVals}
+            onChange={setEditTopicVals}
+            onClose={() => setEditTopicId(null)}
+            onSave={() => {
+              saveTopicOverride(editTopicId, { hours: parseFloat(editTopicVals.hours), days: parseFloat(editTopicVals.days) });
+              setEditTopicId(null);
+            }}
+            onDelete={() => {
+              if (confirm(`Delete "${t.title}"? This removes it and any logged time for it.`)) {
+                deleteCustomTopic(editTopicId);
+                setEditTopicId(null);
+              }
+            }}
+          />
+        );
+      })()}
+
+      <div style={{ position: "relative", zIndex: 1 }}>
+        {runningTopic && (
+          <div style={{
+            position: "sticky", top: 0, zIndex: 10, background: th.stickyBg,
+            borderBottom: "1px solid rgba(52,211,153,0.25)", padding: "10px 18px",
+            display: "flex", alignItems: "center", justifyContent: "space-between"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#34D399", animation: "pulse 1.4s infinite", flexShrink: 0 }} />
+              <div style={{ minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 11, color: "#86efac", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
+                  {SUBSTAGES.find((s) => s.key === runningStage)?.icon} {SUBSTAGES.find((s) => s.key === runningStage)?.label} in progress
+                </p>
+                <p style={{ margin: 0, fontSize: 13, color: "#E2E8F0", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {runningTopicTitle}
+                </p>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+              <span style={{ fontSize: 20, fontWeight: 800, color: "#34D399", fontVariantNumeric: "tabular-nums" }}>{fmtClock(elapsed)}</span>
+              <button onClick={stopTimer} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#EF4444", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>■ Stop</button>
+            </div>
+          </div>
+        )}
+
+        {runningPlannerId && (() => {
+          const rpTask = plannerTasks.find((t) => t.id === runningPlannerId);
+          const allottedSec = (rpTask ? rpTask.allottedMin : 0) * 60;
+          const over = allottedSec > 0 && plannerElapsed > allottedSec;
+          return (
+            <div style={{
+              position: "sticky", top: runningTopic ? 49 : 0, zIndex: 9, background: th.stickyBg,
+              borderBottom: "1px solid rgba(251,191,36,0.3)", padding: "10px 18px",
+              display: "flex", alignItems: "center", justifyContent: "space-between"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#FBBF24", animation: "pulse 1.4s infinite", flexShrink: 0 }} />
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 11, color: "#FCD34D", fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>
+                    🗓️ Planner task {over ? "· over time" : "in progress"}
+                  </p>
+                  <p style={{ margin: 0, fontSize: 13, color: "#E2E8F0", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {rpTask ? rpTask.title : "Task"}{rpTask ? ` · allotted ${fmtHM(allottedSec)}` : ""}
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                <span style={{ fontSize: 20, fontWeight: 800, color: over ? "#F87171" : "#FBBF24", fontVariantNumeric: "tabular-nums" }}>{fmtClock(plannerElapsed)}</span>
+                <button onClick={stopPlannerTask} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#EF4444", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>■ Stop</button>
+              </div>
+            </div>
+          );
+        })()}
+
+        <div style={{ padding: "26px 18px 0" }}>
+          <div style={{ maxWidth: 760, margin: "0 auto" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+              <div>
+                <p style={{ fontSize: 11, letterSpacing: 3, color: "#a8c5b8", margin: "0 0 6px", textTransform: "uppercase" }}>NCERT PCM · Rotating Interleaved Strategy</p>
+                <h1 style={{ margin: 0, fontSize: 23, fontWeight: 800, lineHeight: 1.2, color: "#FFFFFF", textShadow: "0 2px 12px rgba(0,0,0,0.5)" }}>Harsh's NCERT Planner</h1>
+                <p style={{ margin: "4px 0 0", color: "#a8c5b8", fontSize: 13 }}>{TOTAL_PLANNED_HOURS.toFixed(1)}h total · {TOTAL_PLAN_DAYS} days · {PLAN.length} stages</p>
+              </div>
+              <div style={{ textAlign: "center", flexShrink: 0 }}>
+                <div style={{ position: "relative", width: 56, height: 56 }}>
+                  <RadialProgress pct={globalPct} color="#A78BFA" size={56} stroke={5} />
+                  <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#A78BFA" }}>{globalPct}%</span>
+                </div>
+                <p style={{ margin: "4px 0 0", fontSize: 10, color: "#a8c5b8" }}>{doneTopics}/{totalTopics} done</p>
+              </div>
+            </div>
+
+            {/* streak + goal chips */}
+            <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 20, background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.35)" }}>
+                <span style={{ fontSize: 14 }}>🔥</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: "#FBBF24" }}>{currentStreak}</span>
+                <span style={{ fontSize: 11, color: "#a8c5b8" }}>day streak · best {bestStreak}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 20, background: "rgba(96,165,250,0.12)", border: "1px solid rgba(96,165,250,0.35)" }}>
+                <span style={{ fontSize: 14 }}>🎯</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: "#60A5FA" }}>{goalPct}%</span>
+                <span style={{ fontSize: 11, color: "#a8c5b8" }}>of today's {settings.dailyGoalHours}h goal</span>
+              </div>
+              {installPrompt && (
+                <button onClick={() => { installPrompt.prompt(); setInstallPrompt(null); }} style={{
+                  display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 20,
+                  background: "rgba(52,211,153,0.14)", border: "1px solid rgba(52,211,153,0.4)", color: "#34D399",
+                  fontSize: 12, fontWeight: 700, cursor: "pointer"
+                }}>⬇ Install app</button>
+              )}
+            </div>
+
+            {showBackupReminder && (
+              <div style={{
+                marginTop: 12, padding: "10px 14px", borderRadius: 12, display: "flex", alignItems: "center",
+                justifyContent: "space-between", gap: 10, flexWrap: "wrap",
+                background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)"
+              }}>
+                <p style={{ margin: 0, fontSize: 11.5, color: "#FBBF24" }}>💾 It's been {BACKUP_REMIND_DAYS}+ days since your last backup — your data only lives in this browser.</p>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={doExport} style={{ padding: "6px 10px", borderRadius: 8, border: "none", background: "#FBBF24", color: "#0b1d2e", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>Export now</button>
+                  <button onClick={() => setSettings((s) => ({ ...s, backupDismissedAt: Date.now() }))} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid rgba(251,191,36,0.4)", background: "transparent", color: "#FBBF24", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>Later</button>
+                </div>
+              </div>
+            )}
+
+            {/* overview / stats toggle (existing) */}
+            <div onClick={() => setShowStats((s) => !s)} style={{
+              marginTop: 14, padding: "14px 16px", borderRadius: 14, cursor: "pointer",
+              background: "rgba(15, 36, 28, 0.55)", border: "1px solid rgba(167,139,250,0.25)", backdropFilter: "blur(6px)"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                <div><p style={{ margin: 0, fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1 }}>Total Studied</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 800, color: "#fff" }}>{fmtHM(totalSecondsSpent)}</p></div>
+                <div><p style={{ margin: 0, fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1 }}>Today</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 800, color: "#60A5FA" }}>{fmtHM(todaySeconds)}</p></div>
+                <div><p style={{ margin: 0, fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1 }}>Days Studied</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 800, color: "#34D399" }}>{daysStudied}d</p></div>
+                <div><p style={{ margin: 0, fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1 }}>Remaining</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 800, color: "#FBBF24" }}>{remainingHoursTotal.toFixed(1)}h</p></div>
+              </div>
+              <p style={{ margin: "10px 0 0", fontSize: 11, color: "#64748b" }}>Tap to {showStats ? "hide" : "show"} daily breakdown</p>
+              {showStats && (
+                <div style={{ marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 12 }}>
+                  {sortedDays.length === 0 ? <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>No sessions logged yet.</p> : (
+                    <React.Fragment>
+                      {sortedDays.slice(0, 14).map(([day, secs]) => {
+                        const isToday = day === todayKey();
+                        return (
+                          <div key={day} style={{
+                            display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 8px",
+                            marginBottom: 4, borderRadius: 8, fontSize: 12,
+                            background: isToday ? "rgba(96,165,250,0.12)" : "transparent",
+                            border: isToday ? "1px solid rgba(96,165,250,0.3)" : "1px solid transparent"
+                          }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              {isToday && <span style={{ fontSize: 9, background: "#60A5FA", color: "#0b1d2e", fontWeight: 700, padding: "1px 5px", borderRadius: 4 }}>TODAY</span>}
+                              <span style={{ color: "#94a3b8" }}>{new Date(day + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", weekday: "short" })}</span>
+                            </div>
+                            <span style={{ color: "#E2E8F0", fontWeight: 700 }}>{fmtHM(secs)}</span>
+                          </div>
+                        );
+                      })}
+                      <p style={{ margin: "8px 0 0", fontSize: 11, color: "#475569", textAlign: "right" }}>{daysStudied} day{daysStudied !== 1 ? "s" : ""} with study sessions</p>
+                    </React.Fragment>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* tab switcher */}
+            <div style={{ display: "flex", gap: 6, marginTop: 16, background: th.navBg, padding: 5, borderRadius: 12, border: `1px solid ${th.navBorder}` }}>
+              <button onClick={() => setTab("track")} style={tabBtnStyle(tab === "track")}>📚 Track</button>
+              <button onClick={() => setTab("planner")} style={tabBtnStyle(tab === "planner")}>🗓️ Planner</button>
+              <button onClick={() => setTab("dashboard")} style={tabBtnStyle(tab === "dashboard")}>📊 Dashboard</button>
+              <button onClick={() => setTab("settings")} style={tabBtnStyle(tab === "settings")}>⚙️ Settings</button>
+            </div>
+          </div>
+        </div>
+
+        {tab === "track" ? (
+          <React.Fragment>
+            <div style={{ padding: "18px 18px 0" }}>
+              <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+                {PLAN.map((b, i) => (
+                  <button key={b.stage} onClick={() => { setActiveBlock(i); setExpandedTopic(null); }} style={{
+                    flexShrink: 0, padding: "10px 14px", borderRadius: 12,
+                    border: i === activeBlock ? `1px solid ${b.color}` : "1px solid rgba(255,255,255,0.1)",
+                    background: i === activeBlock ? `${b.color}22` : "rgba(15,30,24,0.45)",
+                    color: i === activeBlock ? "#fff" : "#94a3b8", cursor: "pointer",
+                    display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700
+                  }}>
+                    <span>{b.title}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 20, background: i === activeBlock ? b.color : "rgba(255,255,255,0.08)", color: i === activeBlock ? "#0b1d2e" : "#94a3b8" }}>{blockPct(b)}%</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ padding: "18px 18px 0" }}>
+              <div style={{ maxWidth: 760, margin: "0 auto" }}>
+                <div style={{ padding: "16px 18px", borderRadius: 16, background: `linear-gradient(135deg, ${block.glow}, rgba(10,20,16,0.5))`, border: `1px solid ${block.color}44` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 11, color: block.color, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Stage {block.stage} · {block.months} · {block.days}d / {block.hours}h</p>
+                      <h2 style={{ margin: "4px 0 0", fontSize: 19, fontWeight: 800, color: "#fff" }}>{block.title}</h2>
+                      <p style={{ margin: "2px 0 0", fontSize: 12, color: "#a8c5b8" }}>{block.subtitle}</p>
+                    </div>
+                    <span style={{ fontSize: 11, color: "#94a3b8", whiteSpace: "nowrap" }}>{block.days} days</span>
+                  </div>
+                </div>
+                <button onClick={() => setAddTopicOpen(true)} style={{
+                  marginTop: 10, width: "100%", padding: "9px", borderRadius: 10, border: `1px dashed ${block.color}66`,
+                  background: "transparent", color: block.color, fontWeight: 700, fontSize: 12, cursor: "pointer"
+                }}>+ Add a topic to {block.title}</button>
+              </div>
+            </div>
+
+            <div style={{ padding: "16px 18px 0" }}>
+              <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
+                {topicsForBlock(activeBlock).map((topic) => {
+                  const td = getTopicData(topic.id);
+                  const spentSecs = totalSecondsForTopic(topic.id) + (runningTopic === topic.id ? elapsed : 0);
+                  const isExpanded = expandedTopic === topic.id;
+                  const isRunningThis = runningTopic === topic.id;
+                  const topicDaysStudied = Object.keys(td.days).length;
+                  const subjMeta = SUBJECT_META[topic.subject] || SUBJECT_META.Physics;
+                  const subjColor = subjMeta.color;
+                  return (
+                    <div key={topic.id} style={{ borderRadius: 16, background: "rgba(12,28,22,0.55)", border: td.done ? `1px solid ${subjColor}66` : "1px solid rgba(255,255,255,0.08)", overflow: "hidden", backdropFilter: "blur(6px)", borderLeft: `3px solid ${subjColor}` }}>
+                      <div onClick={() => setExpandedTopic(isExpanded ? null : topic.id)} style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+                        <button onClick={(e) => { e.stopPropagation(); toggleDone(topic.id); }} style={{
+                          flexShrink: 0, width: 26, height: 26, borderRadius: 8, border: td.done ? "none" : `1.5px solid ${subjColor}88`,
+                          background: td.done ? subjColor : "transparent", color: td.done ? "#0b1d2e" : "transparent",
+                          fontWeight: 900, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center"
+                        }}>✓</button>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 12, color: subjColor }}>{subjMeta.icon}</span>
+                            <span style={{ fontSize: 10, color: subjColor, fontWeight: 800 }}>{topic.num}</span>
+                            <span style={{ fontSize: 10, color: "#64748b", background: "rgba(255,255,255,0.06)", padding: "1px 6px", borderRadius: 6 }}>{topic.cls}</span>
+                            {topic.priority && <span style={{ fontSize: 10, color: "#FBBF24" }}>★ priority</span>}
+                            {isRunningThis && <span style={{ fontSize: 10, color: "#34D399", fontWeight: 700 }}>● live</span>}
+                            {td.done && topicDaysStudied > 0 && (() => {
+                              const diff = topic.days - topicDaysStudied;
+                              if (diff === 0) return <span style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700 }}>on schedule</span>;
+                              return diff > 0
+                                ? <span style={{ fontSize: 10, color: "#059669", fontWeight: 700 }}>⏱ {diff}d saved</span>
+                                : <span style={{ fontSize: 10, color: "#F87171", fontWeight: 700 }}>+{-diff}d over</span>;
+                            })()}
+                          </div>
+                          <p style={{ margin: "2px 0 0", fontSize: 14, fontWeight: 700, color: td.done ? "#9CA3AF" : "#F1F5F9", textDecoration: td.done ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{topic.title}</p>
+                          <p style={{ margin: "2px 0 0", fontSize: 11, color: "#64748b" }}>{fmtHM(spentSecs)} logged · {topic.days} day{topic.days !== 1 ? "s" : ""} allotted{topicDaysStudied > 0 ? ` · ${topicDaysStudied} studied` : ""}</p>
+                        </div>
+                        <button onClick={(e) => {
+                          e.stopPropagation();
+                          setEditTopicVals({ hours: String(topic.hours), days: String(topic.days) });
+                          setEditTopicId(topic.id);
+                        }} style={{
+                          flexShrink: 0, width: 28, height: 28, borderRadius: 8, border: "1px solid rgba(255,255,255,0.12)",
+                          background: "transparent", color: "#94a3b8", fontSize: 12, cursor: "pointer"
+                        }}>✎</button>
+                      </div>
+                      {isExpanded && (
+                        <div style={{ padding: "0 16px 16px" }}>
+                          <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "#a8c5b8", lineHeight: 1.5, background: "rgba(255,255,255,0.04)", padding: "10px 12px", borderRadius: 10 }}>{topic.focus}</p>
+                          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                            {SUBSTAGES.map((s) => {
+                              const isActiveStage = td.activeStage === s.key;
+                              return (
+                                <button key={s.key} onClick={() => {
+                                  setActiveStage(topic.id, s.key);
+                                  if (s.key === "test" && !runningTopic) {
+                                    startTimer(topic.id, "test");
+                                  }
+                                }} style={{
+                                  flex: 1, padding: "8px 6px", borderRadius: 10,
+                                  border: isActiveStage ? `1px solid ${subjColor}` : "1px solid rgba(255,255,255,0.08)",
+                                  background: isActiveStage ? `${subjColor}22` : "transparent",
+                                  color: isActiveStage ? "#fff" : "#94a3b8", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                                  display: "flex", flexDirection: "column", alignItems: "center", gap: 2
+                                }}>
+                                  <span style={{ fontSize: 14 }}>{s.icon}</span>
+                                  <span>{s.label}</span>
+                                  <span style={{ fontSize: 9, color: "#64748b" }}>{fmtHM(td.stages[s.key] || 0)}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {td.activeStage === "test" && topic.testUrl && (
+                            <a href={topic.testUrl} target="_blank" rel="noopener noreferrer" style={{
+                              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                              width: "100%", padding: "13px 10px", marginBottom: 10, borderRadius: 12,
+                              border: `1px solid ${subjColor}66`, background: `${subjColor}22`,
+                              color: "#fff", fontSize: 13.5, fontWeight: 800, textDecoration: "none",
+                              boxShadow: `0 4px 16px ${subjColor}22`, transition: "transform 0.15s ease, background 0.15s ease"
+                            }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = `${subjColor}38`; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = `${subjColor}22`; e.currentTarget.style.transform = "translateY(0)"; }}
+                            >
+                              📝 Launch Chapter Mock Test
+                            </a>
+                          )}
+                          {Object.keys(td.days).length > 0 && (
+                            <div style={{ marginBottom: 10, padding: "8px 10px", borderRadius: 10, background: "rgba(255,255,255,0.04)" }}>
+                              <p style={{ margin: "0 0 6px", fontSize: 10, color: "#64748b", textTransform: "uppercase", letterSpacing: 1 }}>Session history</p>
+                              {Object.entries(td.days).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 5).map(([day, secs]) => (
+                                <div key={day} style={{ display: "flex", justifyContent: "space-between", fontSize: 11, padding: "2px 0" }}>
+                                  <span style={{ color: "#94a3b8" }}>{new Date(day + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", weekday: "short" })}</span>
+                                  <span style={{ color: "#E2E8F0", fontWeight: 600 }}>{fmtHM(secs)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {isRunningThis ? (
+                            <button onClick={stopTimer} style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", background: "#EF4444", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                              ■ Stop {SUBSTAGES.find((s) => s.key === runningStage)?.label} — {fmtClock(elapsed)}
+                            </button>
+                          ) : (
+                            <button disabled={!!runningTopic} onClick={() => startTimer(topic.id, td.activeStage)} style={{
+                              width: "100%", padding: "12px", borderRadius: 12, border: "none",
+                              background: runningTopic ? "rgba(255,255,255,0.08)" : subjColor,
+                              color: runningTopic ? "#64748b" : "#0b1d2e", fontWeight: 700, fontSize: 14,
+                              cursor: runningTopic ? "not-allowed" : "pointer"
+                            }}>
+                              ▶ Start {SUBSTAGES.find((s) => s.key === td.activeStage)?.label}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <p style={{ textAlign: "center", fontSize: 11, color: "#475569", marginTop: 28 }}>Timers persist across tab closes. Multiple sessions on the same day accumulate automatically.</p>
+          </React.Fragment>
+        ) : tab === "planner" ? (
+          <div style={{ padding: "18px 18px 40px" }}>
+            <div style={{ maxWidth: 760, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
+
+              <Card theme={th}>
+                <CardTitle theme={th} icon="➕">Add a task for tomorrow</CardTitle>
+                <p style={{ margin: "0 0 12px", fontSize: 11.5, color: "#94a3b8" }}>
+                  Plan it the day before: name the task, pick the date, and allot how long it should take. Start the timer when you begin, stop it when it's done — finished tasks are cleared automatically.
+                </p>
+                <input
+                  value={newPlannerTask.title}
+                  onChange={(e) => setNewPlannerTask((v) => ({ ...v, title: e.target.value }))}
+                  placeholder="What needs to be done?"
+                  style={{ padding: "9px 10px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 13, width: "100%" }}
+                />
+                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                  <input
+                    type="date"
+                    value={newPlannerTask.date}
+                    onChange={(e) => setNewPlannerTask((v) => ({ ...v, date: e.target.value }))}
+                    style={{ flex: "1 1 140px", padding: "9px 10px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 13 }}
+                  />
+                  <input
+                    type="number" min="0" placeholder="hrs"
+                    value={newPlannerTask.hours}
+                    onChange={(e) => setNewPlannerTask((v) => ({ ...v, hours: e.target.value }))}
+                    style={{ width: 64, padding: "9px 10px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 13 }}
+                  />
+                  <input
+                    type="number" min="0" max="59" placeholder="min"
+                    value={newPlannerTask.minutes}
+                    onChange={(e) => setNewPlannerTask((v) => ({ ...v, minutes: e.target.value }))}
+                    style={{ width: 64, padding: "9px 10px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 13 }}
+                  />
+                </div>
+                <button onClick={addPlannerTask} style={{
+                  marginTop: 10, width: "100%", padding: "10px", borderRadius: 10, border: "none",
+                  background: "#FBBF24", color: "#0b1d2e", fontWeight: 700, fontSize: 13, cursor: "pointer"
+                }}>Add to planner</button>
+              </Card>
+
+              <Card theme={th}>
+                <CardTitle theme={th} icon="📋">Planned tasks</CardTitle>
+                {plannerTasks.length === 0 ? (
+                  <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>Nothing planned yet — add a task above.</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {[...plannerTasks].sort((a, b) => (a.date + a.createdAt) < (b.date + b.createdAt) ? -1 : 1).map((task) => {
+                      const isRunningThis = runningPlannerId === task.id;
+                      const allottedSec = task.allottedMin * 60;
+                      const isToday = task.date === todayKey();
+                      const dLabel = new Date(task.date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", weekday: "short" });
+                      return (
+                        <div key={task.id} style={{
+                          padding: "12px 14px", borderRadius: 12,
+                          background: isRunningThis ? "rgba(251,191,36,0.1)" : "rgba(255,255,255,0.04)",
+                          border: isRunningThis ? "1px solid rgba(251,191,36,0.35)" : "1px solid rgba(255,255,255,0.08)"
+                        }}>
+                          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: "#E2E8F0", overflowWrap: "anywhere" }}>{task.title}</p>
+                              <p style={{ margin: "3px 0 0", fontSize: 11, color: "#94a3b8" }}>
+                                {isToday ? <span style={{ color: "#60A5FA", fontWeight: 700 }}>TODAY</span> : dLabel} · allotted {fmtHM(allottedSec)}
+                              </p>
+                            </div>
+                            {!isRunningThis && (
+                              <button onClick={() => deletePlannerTask(task.id)} title="Remove task" style={{
+                                flexShrink: 0, background: "transparent", border: "none", color: "#64748b", fontSize: 15, cursor: "pointer", padding: 4
+                              }}>✕</button>
+                            )}
+                          </div>
+                          <div style={{ marginTop: 10 }}>
+                            {isRunningThis ? (
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                                <span style={{ fontSize: 18, fontWeight: 800, color: plannerElapsed > allottedSec ? "#F87171" : "#FBBF24", fontVariantNumeric: "tabular-nums" }}>{fmtClock(plannerElapsed)}</span>
+                                <button onClick={stopPlannerTask} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#EF4444", color: "#fff", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>■ Stop &amp; finish</button>
+                              </div>
+                            ) : (
+                              <button disabled={!!runningPlannerId} onClick={() => startPlannerTask(task.id)} style={{
+                                width: "100%", padding: "10px", borderRadius: 10,
+                                border: "none", background: runningPlannerId ? "rgba(255,255,255,0.08)" : "#34D399",
+                                color: runningPlannerId ? "#64748b" : "#0b1d2e", fontWeight: 700, fontSize: 13,
+                                cursor: runningPlannerId ? "not-allowed" : "pointer"
+                              }}>▶ Start</button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <p style={{ margin: "12px 0 0", fontSize: 11, color: "#475569" }}>Stopping a task's timer means it's done — it's removed from this list right away.</p>
+              </Card>
+
+            </div>
+          </div>
+        ) : tab === "dashboard" ? (
+          <div style={{ padding: "18px 18px 40px" }}>
+            <div style={{ maxWidth: 760, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
+
+
+              {/* Calendar heatmap */}
+              <Card theme={th}>
+                <CardTitle theme={th} icon="🗺️" right={
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <button onClick={() => setHeatmapZoom((z) => Math.max(6, z - 3))} style={{
+                      width: 26, height: 26, borderRadius: 7, border: `1px solid ${th.inputBorder}`,
+                      background: "transparent", color: th.textMuted, fontSize: 15, fontWeight: 700, cursor: "pointer"
+                    }}>−</button>
+                    <button onClick={() => setHeatmapZoom((z) => Math.min(24, z + 3))} style={{
+                      width: 26, height: 26, borderRadius: 7, border: `1px solid ${th.inputBorder}`,
+                      background: "transparent", color: th.textMuted, fontSize: 15, fontWeight: 700, cursor: "pointer"
+                    }}>+</button>
+                  </div>
+                }>Full journey ({TOTAL_PLAN_DAYS} days)</CardTitle>
+                <CalendarHeatmap planStartDate={settings.planStartDate} dayTotals={dayTotals} goalSecs={goalSecs}
+                  tooltip={heatmapTooltip} setTooltip={setHeatmapTooltip} cellSize={heatmapZoom} theme={th} />
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 9.5, color: "#64748b" }}>Below goal</span>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: "rgba(148,163,184,0.35)" }} />
+                  {GOAL_TIER_COLORS.map((c, i) => (
+                    <span key={i} style={{ width: 10, height: 10, borderRadius: 2, background: c }} />
+                  ))}
+                  <span style={{ fontSize: 9.5, color: "#64748b" }}>60+ min over</span>
+                </div>
+              </Card>
+
+              {/* Time efficiency & pacing summary */}
+              <Card theme={th}>
+                <CardTitle theme={th} icon="⏱️">Time Efficiency & Pacing Summary</CardTitle>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+
+                  {/* Column 1: Syllabus speed */}
+                  <div style={{
+                    padding: "14px 12px", borderRadius: 12,
+                    background: totalDaysSaved > 0 ? "rgba(52,211,153,0.1)" : "rgba(148,163,184,0.06)",
+                    border: `1px solid ${totalDaysSaved > 0 ? "rgba(52,211,153,0.3)" : "rgba(148,163,184,0.15)"}`
+                  }}>
+                    <p style={{ margin: "0 0 8px", fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Days Saved by Efficiency</p>
+                    {totalDaysSaved > 0 ? (
+                      <span style={{
+                        display: "inline-block", padding: "6px 12px", borderRadius: 20,
+                        background: "rgba(52,211,153,0.18)", border: "1px solid rgba(52,211,153,0.45)",
+                        color: "#34D399", fontSize: 14, fontWeight: 800
+                      }}>
+                        ⚡ {totalDaysSaved}d saved
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 12.5, color: "#94a3b8", fontWeight: 600 }}>
+                        📅 No days saved yet
+                      </span>
+                    )}
+                    <p style={{ margin: "8px 0 0", fontSize: 10.5, color: "#64748b", lineHeight: 1.4 }}>
+                      Based on finished chapters completed faster than their allotted days.
+                    </p>
+                  </div>
+
+                  {/* Column 2: Current schedule status */}
+                  <div style={{
+                    padding: "14px 12px", borderRadius: 12,
+                    background: onTrack ? "rgba(52,211,153,0.1)" : "rgba(239,68,68,0.1)",
+                    border: `1px solid ${onTrack ? "rgba(52,211,153,0.3)" : "rgba(239,68,68,0.35)"}`
+                  }}>
+                    <p style={{ margin: "0 0 8px", fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Schedule Delay Status</p>
+                    {onTrack ? (
+                      <span style={{
+                        display: "inline-block", padding: "6px 12px", borderRadius: 20,
+                        background: "rgba(52,211,153,0.18)", border: "1px solid rgba(52,211,153,0.45)",
+                        color: "#34D399", fontSize: 14, fontWeight: 800
+                      }}>
+                        ✓ Ahead of Plan
+                      </span>
+                    ) : (
+                      <span style={{
+                        display: "inline-block", padding: "6px 12px", borderRadius: 20,
+                        background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.5)",
+                        color: "#F87171", fontSize: 14, fontWeight: 800
+                      }}>
+                        ⚠ {calendarDaysDelayed}d Delayed
+                      </span>
+                    )}
+                    <p style={{ margin: "8px 0 0", fontSize: 10.5, color: "#64748b", lineHeight: 1.4 }}>
+                      {onTrack
+                        ? `You're ${Math.abs(paceDeltaHours).toFixed(1)}h ahead of your expected pace.`
+                        : `${Math.abs(paceDeltaHours).toFixed(1)}h behind pace, vs your ${settings.dailyGoalHours}h/day goal.`}
+                    </p>
+                  </div>
+
+                </div>
+              </Card>
+
+              {/* Shareable progress card */}
+              <Card theme={th}>
+                <CardTitle theme={th} icon="🔗">Share your progress</CardTitle>
+                <p style={{ margin: "0 0 12px", fontSize: 11.5, color: "#94a3b8" }}>Generates an image card with your stats — shared via your phone's native share sheet where supported, or downloaded as a PNG.</p>
+                <button onClick={shareProgressImage} style={{ width: "100%", padding: "12px", borderRadius: 10, border: "none", background: "#A78BFA", color: "#1a1030", fontWeight: 800, fontSize: 13.5, cursor: "pointer" }}>
+                  {typeof navigator !== "undefined" && navigator.canShare ? "📤 Share progress image" : "⬇ Download progress image"}
+                </button>
+              </Card>
+
+              {/* Weekly bar chart */}
+              <Card theme={th}>
+                <CardTitle theme={th} icon="📅">This week</CardTitle>
+                <div style={{ textAlign: "center", marginBottom: 14 }}>
+                  <p style={{ margin: 0, fontSize: 26, fontWeight: 800, color: "#fff" }}>{fmtHM(todaySeconds)}</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 11, color: "#64748b" }}>Today</p>
+                </div>
+                <div style={{ position: "relative", height: 150, padding: "0 4px 0 0" }}>
+                  {[0, 0.5, 1].map((frac) => (
+                    <div key={frac} style={{
+                      position: "absolute", left: 0, right: 32, top: `${(1 - frac) * 100}%`,
+                      borderTop: "1px dashed rgba(255,255,255,0.08)"
+                    }} />
+                  ))}
+                  {[1, 0.5, 0].map((frac, i) => (
+                    <span key={i} style={{
+                      position: "absolute", right: 0, top: `${(1 - frac) * 100}%`, transform: "translateY(-50%)",
+                      fontSize: 9, color: "#475569"
+                    }}>{(weekMax / 3600 * frac).toFixed(frac === 0 ? 0 : 1)}h</span>
+                  ))}
+                  <div style={{ position: "absolute", left: 0, right: 32, top: 0, bottom: 0, display: "flex", alignItems: "flex-end", gap: 10 }}>
+                    {week.map((d) => {
+                      const secs = dayTotals[d] || 0;
+                      const h = Math.max(3, (secs / weekMax) * 100);
+                      const isToday = d === todayKey();
+                      const isSelected = selectedDay === d;
+                      const barColor = barColorForDay(secs, goalSecs);
+                      const diffSecs = secs - goalSecs;
+                      return (
+                        <div key={d} style={{ flex: 1, height: "100%", display: "flex", alignItems: "flex-end", position: "relative" }}>
+                          {isSelected && (
+                            <div style={{
+                              position: "absolute", bottom: `calc(${h}% + 10px)`, left: "50%", transform: "translateX(-50%)",
+                              background: "rgba(6,20,16,0.97)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10,
+                              padding: "8px 10px", whiteSpace: "nowrap", zIndex: 5, boxShadow: "0 8px 24px rgba(0,0,0,0.5)"
+                            }}>
+                              <p style={{ margin: 0, fontSize: 10, color: "#94a3b8", fontWeight: 700 }}>
+                                {new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", weekday: "short" })}
+                              </p>
+                              <p style={{ margin: "2px 0 0", fontSize: 14, fontWeight: 800, color: "#fff" }}>{fmtHM(secs)}</p>
+                              {goalSecs > 0 && (
+                                <p style={{ margin: "2px 0 0", fontSize: 10, fontWeight: 700, color: diffSecs >= 0 ? "#34D399" : "#F87171" }}>
+                                  {diffSecs >= 0 ? `+${fmtHM(diffSecs)} over goal` : `${fmtHM(-diffSecs)} short of goal`}
+                                </p>
+                              )}
+                              <div style={{
+                                position: "absolute", bottom: -5, left: "50%", transform: "translateX(-50%) rotate(45deg)",
+                                width: 10, height: 10, background: "rgba(6,20,16,0.97)", borderRight: "1px solid rgba(255,255,255,0.15)", borderBottom: "1px solid rgba(255,255,255,0.15)"
+                              }} />
+                            </div>
+                          )}
+                          <div
+                            onClick={() => {
+                              clearTimeout(selectedDayTimeoutRef.current);
+                              if (selectedDay === d) { setSelectedDay(null); return; }
+                              setSelectedDay(d);
+                              selectedDayTimeoutRef.current = setTimeout(() => setSelectedDay(null), 4000);
+                            }}
+                            style={{
+                              width: "100%", height: `${h}%`, borderRadius: "7px 7px 3px 3px",
+                              background: barColor, cursor: "pointer",
+                              outline: isToday ? "2px solid rgba(96,165,250,0.55)" : "none", outlineOffset: 1,
+                              boxShadow: isSelected ? "0 0 0 2px rgba(255,255,255,0.4)" : "none",
+                              transition: "height 0.4s ease, background 0.3s ease"
+                            }} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 10, marginTop: 8, paddingRight: 32 }}>
+                  {week.map((d) => {
+                    const isToday = d === todayKey();
+                    return (
+                      <div key={d} style={{ flex: 1, textAlign: "center" }}>
+                        {isToday ? (
+                          <span style={{ fontSize: 10, fontWeight: 800, color: "#0b1d2e", background: "#60A5FA", padding: "2px 8px", borderRadius: 20 }}>
+                            {new Date(d + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short" })}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 10, color: "#64748b", fontWeight: 600 }}>
+                            {new Date(d + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short" })}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p style={{ margin: "14px 0 0", fontSize: 11, color: "#64748b" }}>7-day avg: <b style={{ color: "#E2E8F0" }}>{pace7.toFixed(1)}h/day</b> · 14-day avg: <b style={{ color: "#E2E8F0" }}>{pace14.toFixed(1)}h/day</b></p>
+                <p style={{ margin: "6px 0 0", fontSize: 10, color: "#475569" }}>Tap a bar for details · green shade deepens the more you beat your {settings.dailyGoalHours}h goal that day</p>
+              </Card>
+
+              {/* Daily goal */}
+              <Card theme={th}>
+                <CardTitle theme={th} icon="🎯" right={
+                  <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <input type="number" min="0.5" step="0.5" value={settings.dailyGoalHours}
+                      onChange={(e) => setSettings((s) => ({ ...s, dailyGoalHours: Math.max(0.5, parseFloat(e.target.value) || 0.5) }))}
+                      style={{ width: 54, padding: "4px 6px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 12 }} />
+                    <span style={{ fontSize: 11, color: "#94a3b8" }}>h/day</span>
+                  </div>
+                }>Daily goal</CardTitle>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <div style={{ position: "relative", width: 64, height: 64, flexShrink: 0 }}>
+                    <RadialProgress pct={goalPct} color="#60A5FA" size={64} stroke={6} />
+                    <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#60A5FA" }}>{goalPct}%</span>
+                  </div>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#fff" }}>{fmtHM(todaySeconds)}</p>
+                    <p style={{ margin: "2px 0 0", fontSize: 12, color: "#94a3b8" }}>of {settings.dailyGoalHours}h goal today</p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Estimated finish + pace vs plan */}
+              <Card theme={th}>
+                <CardTitle theme={th} icon="🏁">Estimated finish &amp; pace</CardTitle>
+                <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 10 }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1 }}>At current pace</p>
+                    <p style={{ margin: "2px 0 0", fontSize: 17, fontWeight: 800, color: "#fff" }}>{estFinish ? fmtDate(estFinish) : "Need more data"}</p>
+                  </div>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 10, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1 }}>Plan's own end date</p>
+                    <p style={{ margin: "2px 0 0", fontSize: 17, fontWeight: 800, color: "#a8c5b8" }}>{fmtDate(planEndDate)}</p>
+                  </div>
+                </div>
+                <div style={{ padding: "10px 12px", borderRadius: 10, background: onTrack ? "rgba(52,211,153,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${onTrack ? "rgba(52,211,153,0.3)" : "rgba(239,68,68,0.3)"}` }}>
+                  <p style={{ margin: 0, fontSize: 12.5, color: onTrack ? "#34D399" : "#F87171", fontWeight: 700 }}>
+                    {onTrack ? "✓ Ahead of plan" : "⚠ Behind plan"} by {Math.abs(paceDeltaHours).toFixed(1)}h
+                  </p>
+                  <p style={{ margin: "4px 0 0", fontSize: 11, color: "#94a3b8" }}>Expected by today: {expectedHrsToday.toFixed(1)}h · Actual: {totalHoursSpent.toFixed(1)}h</p>
+                </div>
+                <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 11, color: "#64748b" }}>Plan start date</span>
+                  <input type="date" value={settings.planStartDate}
+                    onChange={(e) => setSettings((s) => ({ ...s, planStartDate: e.target.value }))}
+                    style={{ padding: "4px 6px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)", color: "#fff", fontSize: 11 }} />
+                </div>
+              </Card>
+
+              {/* Milestones */}
+              <Card theme={th}>
+                <CardTitle theme={th} icon="🏆">Milestones</CardTitle>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
+                  {milestones.map((m) => (
+                    <div key={m.id} style={{
+                      display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 10,
+                      background: m.done ? "rgba(251,191,36,0.12)" : "rgba(255,255,255,0.03)",
+                      border: m.done ? "1px solid rgba(251,191,36,0.35)" : "1px solid rgba(255,255,255,0.06)", opacity: m.done ? 1 : 0.55
+                    }}>
+                      <span style={{ fontSize: 15 }}>{m.done ? m.icon : "🔒"}</span>
+                      <span style={{ fontSize: 11, color: m.done ? "#fff" : "#64748b", fontWeight: m.done ? 700 : 500 }}>{m.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {/* Monthly review */}
+              <Card theme={th}>
+                <CardTitle theme={th} icon="🗓️" right={
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => setReviewMonthOffset((v) => v - 1)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", color: "#94a3b8", borderRadius: 6, width: 24, height: 24, cursor: "pointer" }}>‹</button>
+                    <button onClick={() => setReviewMonthOffset((v) => Math.min(0, v + 1))} disabled={reviewMonthOffset === 0} style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", color: reviewMonthOffset === 0 ? "#3f4c58" : "#94a3b8", borderRadius: 6, width: 24, height: 24, cursor: reviewMonthOffset === 0 ? "not-allowed" : "pointer" }}>›</button>
+                  </div>
+                }>{reviewMonthLabel} review</CardTitle>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div><p style={{ margin: 0, fontSize: 10, color: "#94a3b8" }}>Hours studied</p><p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 800, color: "#fff" }}>{thisMonthHours.toFixed(1)}h</p></div>
+                  <div><p style={{ margin: 0, fontSize: 10, color: "#94a3b8" }}>Days studied</p><p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 800, color: "#34D399" }}>{daysStudiedInMonth(reviewMonthKey)}</p></div>
+                  <div><p style={{ margin: 0, fontSize: 10, color: "#94a3b8" }}>Chapters completed</p><p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 800, color: "#FBBF24" }}>{topicsCompletedInMonth(reviewMonthKey)}</p></div>
+                  <div><p style={{ margin: 0, fontSize: 10, color: "#94a3b8" }}>Vs last month</p>
+                    <p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 800, color: monthDeltaPct === null ? "#94a3b8" : monthDeltaPct >= 0 ? "#34D399" : "#F87171" }}>
+                      {monthDeltaPct === null ? "—" : `${monthDeltaPct > 0 ? "+" : ""}${monthDeltaPct}%`}
+                    </p></div>
+                </div>
+              </Card>
+
+              {/* Session notes */}
+              <Card theme={th}>
+                <CardTitle theme={th} icon="📝" right={
+                  <button onClick={() => setManualLogOpen(true)} style={{ padding: "5px 10px", borderRadius: 8, border: "1px solid rgba(52,211,153,0.4)", background: "rgba(52,211,153,0.12)", color: "#34D399", fontWeight: 700, fontSize: 11, cursor: "pointer" }}>+ Log a session</button>
+                }>Session notes</CardTitle>
+                {sessions.length === 0 ? (
+                  <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>Stop a timer, or log one manually, to see it here.</p>
+                ) : (
+                  <React.Fragment>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: showAllSessions ? 420 : "none", overflowY: showAllSessions ? "auto" : "visible" }}>
+                      {(showAllSessions ? sessions.slice(0, 100) : sessions.slice(0, 1)).map((s) => (
+                        <SessionRow key={s.sid} s={s} isEditing={editingSessionId === s.sid}
+                          onEditStart={() => setEditingSessionId(s.sid)}
+                          onEditCancel={() => setEditingSessionId(null)}
+                          onEditSave={(updates) => { editSession(s.sid, updates); setEditingSessionId(null); }}
+                          onDelete={() => { if (confirm("Delete this session? This will subtract it from that topic's totals.")) deleteSession(s.sid); }}
+                          onNoteChange={(note) => updateSessionNote(s.sid, note)} />
+                      ))}
+                    </div>
+                    {sessions.length > 1 && (
+                      <button onClick={() => setShowAllSessions((v) => !v)} style={{
+                        marginTop: 10, width: "100%", padding: "8px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
+                        background: "transparent", color: "#94a3b8", fontSize: 11.5, fontWeight: 700, cursor: "pointer"
+                      }}>{showAllSessions ? "Hide older sessions" : `View all sessions (${sessions.length})`}</button>
+                    )}
+                  </React.Fragment>
+                )}
+              </Card>
+
+              {/* Backup */}
+              <Card theme={th}>
+                <CardTitle theme={th} icon="💾">Backup</CardTitle>
+                <p style={{ margin: "0 0 12px", fontSize: 11.5, color: "#94a3b8" }}>Everything lives only in this browser. Export a backup regularly, or before clearing site data / switching devices.</p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={doExport} style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: "#34D399", color: "#0b1d2e", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>⬇ Export backup</button>
+                  <button onClick={() => fileInputRef.current?.click()} style={{ flex: 1, padding: "10px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "#E2E8F0", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>⬆ Import backup</button>
+                  <input ref={fileInputRef} type="file" accept="application/json" onChange={doImport} style={{ display: "none" }} />
+                </div>
+                {importMsg && <p style={{ margin: "10px 0 0", fontSize: 11.5, color: importMsg.includes("restored") ? "#34D399" : "#F87171" }}>{importMsg}</p>}
+              </Card>
+
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: "18px 18px 40px" }}>
+            <div style={{ maxWidth: 760, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr", gap: 14 }}>
+
+              <Card theme={th}>
+                <CardTitle theme={th} icon="🔔">Sound, vibration &amp; alerts</CardTitle>
+                <ToggleRow label="Chime on milestones & goals" checked={settings.soundEnabled} onChange={(v) => setSettings((s) => ({ ...s, soundEnabled: v }))} />
+                <ToggleRow label="Vibrate on celebrations" checked={settings.vibrationEnabled} onChange={(v) => setSettings((s) => ({ ...s, vibrationEnabled: v }))} />
+                <div style={{ marginTop: 12, padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.04)" }}>
+                  <p style={{ margin: "0 0 8px", fontSize: 11.5, color: "#94a3b8" }}>
+                    Notification permission: <b style={{ color: notifPermission === "granted" ? "#34D399" : "#FBBF24" }}>{notifPermission}</b>.
+                    Needed for the persistent timer notification and the 20-day revisit nudge.
+                  </p>
+                  {notifPermission !== "granted" && (
+                    <button onClick={requestNotifPermission} style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "#60A5FA", color: "#0b1d2e", fontWeight: 700, fontSize: 11.5, cursor: "pointer" }}>Enable notifications</button>
+                  )}
+                  <p style={{ margin: "8px 0 0", fontSize: 10, color: "#64748b" }}>Note: notifications fire reliably while the app is open or backgrounded. If it's fully force-closed, tapping "Stop" briefly reopens it to save your session correctly.</p>
+                </div>
+              </Card>
+
+              <Card theme={th}>
+                <CardTitle theme={th} icon="🔁">Revisit reminders</CardTitle>
+                <p style={{ margin: 0, fontSize: 11.5, color: "#94a3b8" }}>
+                  Every weekend, if a chapter you've started hasn't been touched in {GAP_DAYS}+ days, you'll get a nudge to revisit it — separate from finishing new material.
+                </p>
+                {staleTopicsPreview.length > 0 && (
+                  <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+                    {staleTopicsPreview.map((t) => (
+                      <div key={t.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, padding: "6px 10px", borderRadius: 8, background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)" }}>
+                        <span style={{ color: "#E2E8F0" }}>{t.title}</span>
+                        <span style={{ color: "#FBBF24", fontWeight: 700 }}>{t.gapDays}d ago</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              <Card theme={th}>
+                <CardTitle theme={th} icon="⭐">This week's recap</CardTitle>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div><p style={{ margin: 0, fontSize: 10, color: "#94a3b8" }}>Hours this week</p><p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 800, color: "#fff" }}>{fmtHM(week.reduce((s, d) => s + (dayTotals[d] || 0), 0))}</p></div>
+                  <div><p style={{ margin: 0, fontSize: 10, color: "#94a3b8" }}>Days active</p><p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 800, color: "#34D399" }}>{week.filter((d) => (dayTotals[d] || 0) > 0).length}/7</p></div>
+                  <div><p style={{ margin: 0, fontSize: 10, color: "#94a3b8" }}>Current streak</p><p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 800, color: "#FBBF24" }}>🔥 {currentStreak}d</p></div>
+                  <div><p style={{ margin: 0, fontSize: 10, color: "#94a3b8" }}>Chapters done</p><p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 800, color: "#A78BFA" }}>{doneTopics}/{totalTopics}</p></div>
+                  <div><p style={{ margin: 0, fontSize: 10, color: "#94a3b8" }}>Days saved overall</p><p style={{ margin: "2px 0 0", fontSize: 18, fontWeight: 800, color: totalDaysSaved >= 0 ? "#059669" : "#F87171" }}>{totalDaysSaved >= 0 ? `⏱ ${totalDaysSaved}d` : `+${-totalDaysSaved}d`}</p></div>
+                </div>
+              </Card>
+
+              <Card theme={th}>
+                <CardTitle theme={th} icon="⚠️">Reset data</CardTitle>
+                <p style={{ margin: "0 0 10px", fontSize: 11.5, color: "#94a3b8" }}>Wipes all progress, sessions and settings from this browser. Export a backup first — this can't be undone.</p>
+                <button onClick={() => {
+                  if (confirm("This will permanently delete all progress, sessions and settings on this device. Continue?")) {
+                    localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(SETTINGS_KEY);
+                    localStorage.removeItem(SESSIONS_KEY); localStorage.removeItem(TIMER_KEY);
+                    window.location.reload();
+                  }
+                }} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.4)", background: "rgba(239,68,68,0.1)", color: "#F87171", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}>🗑 Reset all data</button>
+              </Card>
+
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
